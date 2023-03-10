@@ -14,9 +14,14 @@ Sample code shows how to process data from both .hdf5 data files and realtime fr
 2. Create a new conda environment and install package requirements
      
    ```
-   conda create --name treblesdk python=3.7
-   pip install requirements.txt
+   conda create --name treblesdk python=3.9
+   wget --content-disposition https://terra15.com.au/download/latestlinuxapi_cp39_v6.whl
+   pip install treble-*-linux_x86_64.whl
+   conda install pyqt pyqtgraph
+   sudo apt install x11-apps libgl1 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libsm6
    ```
+   
+   
 
 3. Download and Install the current Treble Client API. A download link can be provided by Terra15 upon request.
 
