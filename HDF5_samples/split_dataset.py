@@ -49,16 +49,28 @@ def convert_velocity_to_strainrate(data, gauge_length_m, dx):
     return (data[:, gauge_samples:] - data[:, :-gauge_samples]) / (gauge_samples * dx)
 
 
-def load_strainrate_data(hdf_path, duration_seconds):
+def correct_gauge_length_offset(x_vector, gauge_length):
+    """Compensate for distance shift of data caused by gauge_length calculation."""
+    # crops end of x_vector by gauge length
+    dx = x_vector[1] - x_vector[0]
+    gauge_samples = int(round(gauge_length / dx))
+    gauge_length = gauge_samples * dx
+    x_correct = x_vector[:-gauge_samples]
+
+    # compensates for GL/2 signal offset
+    x_correct = x_correct + gauge_length / 2
+    return x_correct
+
+
+def simple_load_data(hdf_path, duration_seconds):
     with h5py.File(hdf_path, "r") as f:
         metadata = dict(f.attrs)
         t2 = int(duration_seconds // metadata["dt_computer"]) + 1
-        cropped_data = f["data_product"]["data"][:t2]
+        cropped_data = f["data_product/data"][:t2]
+        t = f["data_product/gps_time"][:t2]
+        x = metadata['sensing_range_start'] + np.arange(0, metadata['nx']) * metadata["dx"]
 
-        if metadata["data_product"] == "velocity":
-            cropped_data = convert_velocity_to_strainrate(cropped_data, metadata["pulse_length"], metadata['dx'])
-
-        return cropped_data, metadata
+        return cropped_data, metadata, t, x
 
 
 def isoformat_timestamp(timestamp: float) -> str:
@@ -71,7 +83,7 @@ def resave_triggered_data(src_hdf, dest_hdf, duration_seconds, trigger_timestamp
         src_attrs = dict(src_file.attrs)
 
         if trigger_timestamp:
-            t1 = int((trigger_timestamp - src_attrs['saving_start_computer_time']) // src_attrs["dt_computer"])
+            t1 = np.where(src_file["data_product/gps_time"][:] > trigger_timestamp)[0][0]
         elif "trigger_start_line" in list(src_file.attrs.keys()):
             t1 = src_attrs['trigger_start_line']
             # if t1 == -1: t1=0
@@ -125,65 +137,75 @@ def resave_triggered_data(src_hdf, dest_hdf, duration_seconds, trigger_timestamp
             dest_file.attrs.update(src_updated)
 
 
-def plot_data(
-        data,
-        metadata,
-        title,
-        image_path: str
-):
-    plt.figure()
-    pos_end = metadata["sensing_range_end"]
-    pos_start = metadata["sensing_range_start"]
-    sample_rate = 1/metadata['dt_computer']
+def plot_data(data, t, x, title=None, units=None, axis=None, cmap="gray"):
+    t_start = datetime.utcfromtimestamp(t[0])
+    t_rel = t - t[0]
 
-    plt.title(title, fontsize=20)
+    if axis is not None:
+        plt.sca(axis)
+    else:
+        plt.figure(figsize=(8, 6))
+
+    if title is not None:
+        plt.suptitle(title, fontsize=12)
+
+    plt.title(t_start, loc="left", fontsize=10)
+
     plt.imshow(
         data,
         aspect="auto",
-        cmap="gray",
-        extent=(pos_start, pos_end, 1 / sample_rate * data.shape[0], 0),
+        cmap=cmap,
+        extent=(x[0], x[-1], t_rel[-1], t_rel[0]),
         vmin=-3 * np.std(data),
         vmax=3 * np.std(data),
-        interpolation="none",
+        interpolation="none"
     )
-    plt.xlabel("Position (m)")
-    plt.ylabel("Time from Trigger (s)")
-    plt.savefig(image_path)
-    plt.close()
+
+    cbar = plt.colorbar()
+    if units is not None:
+        cbar.set_label(units)
+
+    plt.xlabel("Fibre Distance (m)")
+    plt.ylabel("Time (s)")
+    plt.tight_layout()
 
 
 # Get file time boundaries
 with h5py.File(hdf5_data_file, "r") as f:
-    t_min = f["data_product"]["posix_time"][0]
-    t_max = f["data_product"]["posix_time"][-1]
+    t_min = f["data_product"]["gps_time"][0]
+    t_max = f["data_product"]["gps_time"][-1]
 
 print(f"Data Start Time (UTC): {datetime.utcfromtimestamp(t_min).strftime(input_time_string_format)}\n"
       f"Data Stop Time  (UTC): {datetime.utcfromtimestamp(t_max).strftime(input_time_string_format)}")
 
 # get trigger timestamps
 trigger_data = pd.read_csv(trigger_reference_file)
-trigger_times = list(trigger_data["Time"])
-trigger_datetimes = [datetime.strptime(t, input_time_string_format) for t in trigger_times]
-trigger_datetimes = [t.replace(tzinfo=pytz.utc) for t in trigger_datetimes]
 
 # crop and resave data from each trigger timestamp
-for t in trigger_datetimes:
-    timestring = t.strftime("YMD%Y%m%d-HMS%H%M%S.%f")
+for i, row in trigger_data.iterrows():
+    trig_name = row["Name"]
+    trig = datetime.strptime(row["Time"], input_time_string_format)
+    trig = trig.replace(tzinfo=pytz.utc)
 
-    if t_min < t.timestamp() < t_max:
+    if t_min < trig.timestamp() < t_max:
         try:
-            print(f"Processing trigger : {t.strftime(input_time_string_format)}")
-            output_filename = timestring + "_cropped_data.hdf5"
+            print(f"Processing trigger : {trig.strftime(input_time_string_format)}")
+            output_filename = trig_name + "_cropped_data.hdf5"
 
-            resave_triggered_data(hdf5_data_file, output_filename, CROP_DURATION, trigger_timestamp=t.timestamp())
+            resave_triggered_data(hdf5_data_file, output_filename, CROP_DURATION, trigger_timestamp=trig.timestamp())
 
             # Checks data validity by re-loading and plotting.
-            data, md = load_strainrate_data(output_filename, CROP_DURATION)
-            plot_data(data, md, title=timestring, image_path=timestring + "_cropped_data.png")
+            data, md, t, x = simple_load_data(output_filename, CROP_DURATION)
+            data = convert_velocity_to_strainrate(data, md['pulse_length'], md['dx'])
+            x = correct_gauge_length_offset(x, md["pulse_length"])
+
+            plot_data(data, t, x, title=output_filename, units="strainrate (strain/s)")
+            plt.savefig(trig_name + "_cropped_data.png")
+
         except Exception as e:
-            print(f"Could not process data for trigger: {t.strftime(input_time_string_format)}")
+            print(f"Could not process data for trigger: {trig.strftime(input_time_string_format)}")
             print(e)
 
 
     else:
-        print(f"Trigger time {t.strftime(input_time_string_format)} is outside time limits of file.")
+        print(f"Trigger time {trig.strftime(input_time_string_format)} is outside time limits of file.")

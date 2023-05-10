@@ -5,7 +5,6 @@ TrebleSDK Provides a library of examples of how to interact with the Terra15 Tre
 
 Sample code shows how to process data from both .hdf5 data files and realtime from a Treble server.
 
-## Get Started
 ### Running Python scripts
 1. If Miniconda is not already installed, it can be downloaded and installed as per instructions below:
    - Linux: https://conda.io/projects/conda/en/stable/user-guide/install/linux.html
@@ -20,10 +19,12 @@ Sample code shows how to process data from both .hdf5 data files and realtime fr
    conda install pyqt pyqtgraph
    sudo apt install x11-apps libgl1 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libsm6
    ```
-   
-   
 
-3. Download and Install the current Treble Client API. A download link can be provided by Terra15 upon request.
+3.  Download and Install the current Treble Client API. API links for different platforms are below:
+   - Linux: https://terra15.com.au/download/latestlinuxapi_cp39_v6.whl
+   - Windows: https://terra15.com.au/download/latestwindowsapi_cp39_v6.whl
+   - MacOS: https://terra15.com.au/download/latestmacosapi_cp39_v6.whl
+
 
 4. The SDK provides examples to stream and plot data from a running Treble server. 
    - First edit the script to point to a Treble IP address, eg. `10.0.0.70`.
