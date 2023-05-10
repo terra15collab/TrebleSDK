@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 from scipy.io import wavfile
 
 
+
 def get_files(directory: str, filetype: str):
     file_list = []
     for root, dirs, files in os.walk(directory):
@@ -26,6 +27,11 @@ def get_files(directory: str, filetype: str):
                 file_list.append(os.path.join(root, file))
     file_list.sort()
     return file_list
+
+
+def convert_velocity_to_strainrate(data, gauge_length_m, dx):
+    gauge_samples = int(round(gauge_length_m / dx))
+    return (data[:, gauge_samples:] - data[:, :-gauge_samples]) / (gauge_samples * dx)
 
 
 def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop=None, info=True):
@@ -64,7 +70,7 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
 
         if info is True:
             # Prints dimensions of full data
-            print(f"Full Dataset Properties:")
+            print("Full Dataset Properties:")
             print(f"    Data Shape:         {data.shape}")
             print(f"    t_end - t_start:    {t[-1]-t[0]:.8f} s")
             print(f"    nt * dt_computer:   {t.shape[0] * dt}")
@@ -102,7 +108,7 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
 
         if info is True:
             # Prints dimensions of sliced output data
-            print(f"Loading data slice:")
+            print("Loading data slice:")
             print(f"    Data Shape:         {data.shape}")
             print(f"    t_end - t_start:    {t[-1]-t[0]:.8f} s")
             print(f"    nt * dt_computer:   {t.shape[0] * dt}")
@@ -110,15 +116,6 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
             print(f"    Times (UTC):        [{datetime.utcfromtimestamp(t[0])} : {datetime.utcfromtimestamp(t[-1])}]")
             print(f"    Distance:           [{x[0]:.1f} : {x[-1]:.1f}] m")
         return data, md, t, x
-
-
-def convert_velocity_to_strainrate(velocity, dx, gauge_length):
-    """Convert velocity data to strainrate by performing gauge calculation."""
-    gauge_samples = int(round( gauge_length / dx ))
-    gauge_length  = gauge_samples * dx
-    strain_rate = velocity[:, gauge_samples:] - velocity[:, :-gauge_samples]
-    strain_rate = strain_rate / gauge_length
-    return strain_rate
 
 
 hdf_files = get_files(data_directory, ".hdf5")
@@ -135,7 +132,7 @@ for filepath in tqdm(hdf_files):
     )
     if metadata['data_product'] in ["velocity", "deformation", "velocity_filtered", "deformation_filtered"]:
         data = data - np.mean(data, axis=0)
-        data = convert_velocity_to_strainrate(data, dx=metadata['dx'], gauge_length=metadata['pulse_length'])
+        data = convert_velocity_to_strainrate(data, metadata['pulse_length'], metadata['dx'])
 
     mean_strainrate = np.mean(data, axis=1)
     audio_trace = mean_strainrate/np.abs(np.max(mean_strainrate))
@@ -149,11 +146,11 @@ for filepath in tqdm(hdf_files):
 
     plt.figure(figsize=(8, 4))
     plt.title(f"Audio Data: {filename}")
-    plt.plot(t, audio_trace)
+    plt.plot(t-t[0], audio_trace)
     plt.ylabel("Amplitude")
     plt.xlabel("Time (s)")
     plt.grid()
     plt.ylim(-1, 1)
     plt.tight_layout()
     plt.savefig(audio_filename+ ".png")
-    plt.pause(0.1)
+    plt.show()

@@ -43,7 +43,7 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
 
         if info is True:
             # Prints dimensions of full data
-            print(f"Full Dataset Properties:")
+            print("Full Dataset Properties:")
             print(f"    Data Shape:         {data.shape}")
             print(f"    t_end - t_start:    {t[-1]-t[0]:.8f} s")
             print(f"    nt * dt_computer:   {t.shape[0] * dt}")
@@ -81,7 +81,7 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
 
         if info is True:
             # Prints dimensions of sliced output data
-            print(f"Loading data slice:")
+            print("Loading data slice:")
             print(f"    Data Shape:         {data.shape}")
             print(f"    t_end - t_start:    {t[-1]-t[0]:.8f} s")
             print(f"    nt * dt_computer:   {t.shape[0] * dt}")
@@ -90,59 +90,43 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
             print(f"    Distance:           [{x[0]:.1f} : {x[-1]:.1f}] m")
         return data, md, t, x
 
-def plot_2d_heatmap(data_array, t_vector, x_vector, title=None, ax=None, **kwargs):
-    """Plots heatmap of 2d data array."""
-    try:
-        # formats timestamps nicely as datetime objects
-        t_vector = [datetime.utcfromtimestamp(t) for t in t_vector]
 
-        # allows for custom color map
-        if "cmap" in kwargs.keys():
-            cmap = kwargs["cmap"]
-        else:
-            cmap="Greys"
+def plot_data(data, t, x, title=None, units=None, axis=None, cmap="gray"):
+    t_start = datetime.utcfromtimestamp(t[0])
+    t_rel = t - t[0]
 
-        # parameters for color scaling
-        data_mean = np.mean(data_array)
-        data_sdev = np.std(data_array)
-        c_max = data_mean + 4 * data_sdev
-        c_min = data_mean - 4 * data_sdev
+    if axis is not None:
+        plt.sca(axis)
+    else:
+        plt.figure(figsize=(8, 6))
 
-        # creates a figure if not given an existing axis
-        if ax:
-            plt.sca(ax)
-        else:
-            plt.figure(figsize=(10, 6))
-            ax = plt.subplot(111)
+    if title is not None:
+        plt.suptitle(title, fontsize=12)
 
-        # plots figure
-        plt.pcolormesh(
-            x_vector,
-            t_vector,
-            data_array,
-            cmap=cmap,
-            vmin=c_min,
-            vmax=c_max,
-            shading="auto")
-        plt.colorbar()
-        # flips time axis to read top->bottom
-        ax.invert_yaxis()
-        ax.yaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-        plt.title(title)
-        plt.xlabel("Distance (m)")
-        plt.ylabel("Time (UTC)")
-    except Exception as e:
-        print("Failed to plot data heatmap.")
-        print(e)
+    plt.title(t_start, loc="left", fontsize=10)
+
+    plt.imshow(
+        data,
+        aspect="auto",
+        cmap=cmap,
+        extent=(x[0], x[-1], t_rel[-1], t_rel[0]),
+        vmin=-4 * np.std(data),
+        vmax=4 * np.std(data),
+        interpolation="none"
+    )
+
+    cbar = plt.colorbar()
+    if units is not None:
+        cbar.set_label(units)
+
+    plt.xlabel("Fibre Distance (m)")
+    plt.ylabel("Time (s)")
+    plt.tight_layout()
 
 
-def convert_velocity_to_strainrate(velocity, dx, gauge_length):
-    """Convert velocity data to strainrate by performing gauge calculation."""
-    gauge_samples = int(round( gauge_length / dx ))
-    gauge_length  = gauge_samples * dx
-    strain_rate = velocity[:, gauge_samples:] - velocity[:, :-gauge_samples]
-    strain_rate = strain_rate / gauge_length
-    return strain_rate
+def convert_velocity_to_strainrate(data, gauge_length_m, dx):
+    gauge_samples = int(round(gauge_length_m / dx))
+    return (data[:, gauge_samples:] - data[:, :-gauge_samples]) / (gauge_samples * dx)
 
 
 def correct_gauge_length_offset(x_vector, gauge_length):
@@ -206,14 +190,11 @@ data, metadata, t, x = load_hdf_slice(
 
 # converts to strain rate if required
 if metadata["data_product"] == "velocity":
-    data = convert_velocity_to_strainrate(data, metadata["dx"], gauge_length)
+    data = convert_velocity_to_strainrate(data, gauge_length, metadata["dx"])
     x = correct_gauge_length_offset(x, gauge_length)
 
 rms_data, t_rms = calculate_rms(data, t, rms_time)
 
-plt.figure(figsize=(10,6))
-plt.suptitle(hdf_file)
-plot_2d_heatmap(rms_data, t_rms, x, title=f"RMS Strain Rate", cmap="viridis", ax=plt.gca())
-plt.tight_layout()
-plt.savefig(f"plot_hdf5_rms.png")
+plot_data(rms_data, t_rms, x, title=hdf_file + f"\nRMS Strain Rate, Gauge = {gauge_length:.0f}m", units="strainrate (strain/s)", cmap="viridis")
+plt.savefig("plot_hdf5_rms.png")
 plt.show()

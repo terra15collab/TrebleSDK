@@ -20,17 +20,27 @@ def convert_velocity_to_strainrate(data, gauge_length_m, dx):
     gauge_samples = int(round(gauge_length_m / dx))
     return (data[:, gauge_samples:] - data[:, :-gauge_samples]) / (gauge_samples * dx)
 
+def correct_gauge_length_offset(x_vector, gauge_length):
+    """Compensate for distance shift of data caused by gauge_length calculation."""
+    # crops end of x_vector by gauge length
+    dx = x_vector[1] - x_vector[0]
+    gauge_samples = int(round(gauge_length / dx))
+    gauge_length = gauge_samples * dx
+    x_correct = x_vector[:-gauge_samples]
 
-def load_strainrate_data(hdf_path, duration_seconds):
+    # compensates for GL/2 signal offset
+    x_correct = x_correct + gauge_length / 2
+    return x_correct
+
+def simple_load_data(hdf_path, duration_seconds):
     with h5py.File(hdf_path, "r") as f:
         metadata = dict(f.attrs)
         t2 = int(duration_seconds // metadata["dt_computer"]) + 1
-        cropped_data = f["data_product"]["data"][:t2]
+        cropped_data = f["data_product/data"][:t2]
+        t = f["data_product/gps_time"][:t2]
+        x = metadata['sensing_range_start'] + np.arange(0, metadata['nx']) * metadata["dx"]
 
-        if metadata["data_product"] == "velocity":
-            cropped_data = convert_velocity_to_strainrate(cropped_data, metadata["pulse_length"], metadata['dx'])
-
-        return cropped_data, metadata
+        return cropped_data, metadata, t, x
 
 def isoformat_timestamp(timestamp: float) -> str:
     """Python isoformat doesn't include Zulu suffix"""
@@ -92,29 +102,38 @@ def resave_triggered_data(src_hdf, dest_hdf, duration_seconds):
             )
             dest_file.attrs.update(src_updated)
 
-def plot_data(
-        data,
-        metadata,
-        title,
-        image_path: str = None,
-):
-    plt.figure()
-    pos_end = metadata["sensing_range_end"]
-    pos_start = metadata["sensing_range_start"]
-    sample_rate = 1/metadata['dt_computer']
 
-    plt.title(title, fontsize=20)
+def plot_data(data, t, x, title=None, units=None, axis=None, cmap="gray"):
+    t_start = datetime.utcfromtimestamp(t[0])
+    t_rel = t - t[0]
+
+    if axis is not None:
+        plt.sca(axis)
+    else:
+        plt.figure(figsize=(8, 6))
+
+    if title is not None:
+        plt.suptitle(title, fontsize=12)
+
+    plt.title(t_start, loc="left", fontsize=10)
+
     plt.imshow(
         data,
         aspect="auto",
-        cmap="gray",
-        extent=(pos_start, pos_end, 1 / sample_rate * data.shape[0], 0),
-        vmin=-3 * np.std(data),
-        vmax=3 * np.std(data),
-        interpolation="none",
+        cmap=cmap,
+        extent=(x[0], x[-1], t_rel[-1], t_rel[0]),
+        vmin=-4 * np.std(data),
+        vmax=4 * np.std(data),
+        interpolation="none"
     )
-    plt.xlabel("Position (m)")
-    plt.ylabel("Time from Trigger (s)")
+
+    cbar = plt.colorbar()
+    if units is not None:
+        cbar.set_label(units)
+
+    plt.xlabel("Fibre Distance (m)")
+    plt.ylabel("Time (s)")
+    plt.tight_layout()
 
 
 if __name__ == "__main__":
@@ -123,21 +142,26 @@ if __name__ == "__main__":
     new_filename = original_filename + "_cropped.hdf5"
     resave_triggered_data(original_filename, new_filename, CROP_DURATION)
 
-    raw_data, raw_md = load_strainrate_data(original_filename, PLOT_DURATION)
-    cropped_data, metadata = load_strainrate_data(new_filename, PLOT_DURATION)
+    raw_data, md_raw, t_raw, x_raw = simple_load_data(original_filename, PLOT_DURATION)
+    raw_data = convert_velocity_to_strainrate(raw_data, md_raw['pulse_length'], md_raw['dx'])
+    x_raw = correct_gauge_length_offset(x_raw, md_raw['pulse_length'])
 
-    plot_data(raw_data, raw_md, "Uncropped Data")
+    cropped_data, md_crop, t_crop, x_crop = simple_load_data(new_filename, PLOT_DURATION)
+    cropped_data = convert_velocity_to_strainrate(cropped_data, md_crop['pulse_length'], md_crop['dx'])
+    x_crop = correct_gauge_length_offset(x_crop, md_crop['pulse_length'])
 
-    trigger_offset = raw_md["trigger_start_line"] * raw_md["dt_computer"]
+    plot_data(raw_data, t_raw, x_raw, "Uncropped Data", units="strainrate (strain/s)")
+
+    trigger_offset = md_raw["trigger_start_line"] * md_raw["dt_computer"]
     # label trigger locations
     plt.axhline(0, color="k")
-    plt.annotate(f"File Start", (raw_md["sensing_range_start"], 0.075))
+    plt.annotate("File Start", (x_raw[0], 0.075))
     plt.axhline(trigger_offset, color="r", linestyle=":")
-    plt.annotate(f"Trigger Time = {trigger_offset*1e3:.0f}ms", (raw_md["sensing_range_start"], trigger_offset))
+    plt.annotate(f"Trigger Time = {trigger_offset*1e3:.0f}ms", (x_raw[0], trigger_offset))
     plt.axhline(trigger_offset+CROP_DURATION, color="r", linestyle=":")
-    plt.annotate(f"Trigger Time + {CROP_DURATION}s", (raw_md["sensing_range_start"], trigger_offset+CROP_DURATION))
+    plt.annotate(f"Trigger Time + {CROP_DURATION}s", (x_raw[0], trigger_offset + CROP_DURATION))
     plt.savefig('crop_data_to_trigger_1.png')
 
-    plot_data(cropped_data, metadata, f"Cropped to Trigger + {CROP_DURATION}s")
+    plot_data(cropped_data, t_crop, x_crop, f"Cropped to Trigger + {CROP_DURATION}s", units="strainrate (strain/s)")
     plt.savefig('crop_data_to_trigger_2.png')
     plt.show()

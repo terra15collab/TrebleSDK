@@ -42,7 +42,7 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
 
         if info is True:
             # Prints dimensions of full data
-            print(f"Full Dataset Properties:")
+            print("Full Dataset Properties:")
             print(f"    Data Shape:         {data.shape}")
             print(f"    t_end - t_start:    {t[-1]-t[0]:.8f} s")
             print(f"    nt * dt_computer:   {t.shape[0] * dt}")
@@ -80,7 +80,7 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
 
         if info is True:
             # Prints dimensions of sliced output data
-            print(f"Loading data slice:")
+            print("Loading data slice:")
             print(f"    Data Shape:         {data.shape}")
             print(f"    t_end - t_start:    {t[-1]-t[0]:.8f} s")
             print(f"    nt * dt_computer:   {t.shape[0] * dt}")
@@ -89,13 +89,9 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
             print(f"    Distance:           [{x[0]:.1f} : {x[-1]:.1f}] m")
         return data, md, t, x
 
-def convert_velocity_to_strainrate(velocity, dx, gauge_length):
-    """Convert velocity data to strainrate by performing gauge calculation."""
-    gauge_samples = int(round( gauge_length / dx ))
-    gauge_length  = gauge_samples * dx
-    strain_rate = velocity[:, gauge_samples:] - velocity[:, :-gauge_samples]
-    strain_rate = strain_rate / gauge_length
-    return strain_rate
+def convert_velocity_to_strainrate(data, gauge_length_m, dx):
+    gauge_samples = int(round(gauge_length_m / dx))
+    return (data[:, gauge_samples:] - data[:, :-gauge_samples]) / (gauge_samples * dx)
 
 
 def correct_gauge_length_offset(x_vector, gauge_length):
@@ -181,7 +177,7 @@ def plot_fft(fft, frequencies, title=None, label=None, ax=None):
     plt.xlabel("Frequency (Hz)")
     plt.ylabel("FFT")
     plt.loglog()
-    plt.grid(b=True, which="both")
+    plt.grid(visible=True, which="both")
 
 
 hdf_file = "../sample_data/example_triggered_shot.hdf5"
@@ -198,21 +194,18 @@ data, metadata, t, x = load_hdf_slice(
 
 # converts to strain rate if required
 if metadata["data_product"] == "velocity":
-    data = convert_velocity_to_strainrate(data, metadata["dx"], gauge_length)
+    data = convert_velocity_to_strainrate(data, gauge_length, metadata["dx"])
     x = correct_gauge_length_offset(x, gauge_length)
 
-# accurate calculation of dt from GPS time
-dt = np.mean(np.diff(t))
-
 # FFT method 1
-fft_of_mean_signal, f = calculate_fft_of_avg_signal(data, dt)
+fft_of_mean_signal, f = calculate_fft_of_avg_signal(data, metadata['dt_computer'])
 plot_fft(
     fft_of_mean_signal,
     f,
     label="1. FFT(mean(signal)"
 )
 # FFT method 2
-mean_of_ffts, _ = calculate_space_avg_of_ffts(data, dt)
+mean_of_ffts, _ = calculate_space_avg_of_ffts(data, metadata['dt_computer'])
 plot_fft(
     mean_of_ffts,
     f,
@@ -223,5 +216,5 @@ plt.suptitle(hdf_file)
 plt.title("FFT of Strain Rate")
 plt.legend()
 plt.tight_layout()
-plt.savefig(f"plot_hdf5_fft.png")
+plt.savefig("plot_hdf5_fft.png")
 plt.show()

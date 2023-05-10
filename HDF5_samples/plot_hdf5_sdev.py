@@ -43,7 +43,7 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
 
         if info is True:
             # Prints dimensions of full data
-            print(f"Full Dataset Properties:")
+            print("Full Dataset Properties:")
             print(f"    Data Shape:         {data.shape}")
             print(f"    t_end - t_start:    {t[-1]-t[0]:.8f} s")
             print(f"    nt * dt_computer:   {t.shape[0] * dt}")
@@ -81,7 +81,7 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
 
         if info is True:
             # Prints dimensions of sliced output data
-            print(f"Loading data slice:")
+            print("Loading data slice:")
             print(f"    Data Shape:         {data.shape}")
             print(f"    t_end - t_start:    {t[-1]-t[0]:.8f} s")
             print(f"    nt * dt_computer:   {t.shape[0] * dt}")
@@ -142,50 +142,37 @@ def calculate_sdev_records(data_array, t, t_sdev):
     return sdev_array, t_new
 
 
-def plot_2d_heatmap(data_array, t_vector, x_vector, title=None, ax=None, **kwargs):
-    """Plots heatmap of 2d data array."""
-    try:
-        # formats timestamps nicely as datetime objects
-        t_vector = [datetime.utcfromtimestamp(t) for t in t_vector]
+def plot_data(data, t, x, title=None, units=None, axis=None, cmap="gray"):
+    t_start = datetime.utcfromtimestamp(t[0])
+    t_rel = t - t[0]
 
-        # allows for custom color map
-        if "cmap" in kwargs.keys():
-            cmap = kwargs["cmap"]
-        else:
-            cmap="Greys"
+    if axis is not None:
+        plt.sca(axis)
+    else:
+        plt.figure(figsize=(8, 6))
 
-        # parameters for color scaling
-        data_mean = np.mean(data_array)
-        data_sdev = np.std(data_array)
-        c_max = data_mean + 4 * data_sdev
-        c_min = data_mean - 4 * data_sdev
+    if title is not None:
+        plt.suptitle(title, fontsize=12)
 
-        # creates a figure if not given an existing axis
-        if ax is None:
-            plt.figure(figsize=(10, 6))
-            ax = plt.subplot(111)
-        else:
-            plt.sca(ax)
+    plt.title(t_start, loc="left", fontsize=10)
 
-        # plots figure
-        plt.pcolormesh(
-            x_vector,
-            t_vector,
-            data_array,
-            cmap=cmap,
-            vmin=c_min,
-            vmax=c_max,
-            shading="auto")
-        plt.colorbar()
-        # flips time axis to read top->bottom
-        ax.invert_yaxis()
-        ax.yaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
-        plt.title(title)
-        plt.xlabel("Distance (m)")
-        plt.ylabel("Time (UTC)")
-    except Exception as e:
-        print("Failed to plot data heatmap.")
-        print(e)
+    plt.imshow(
+        data,
+        aspect="auto",
+        cmap=cmap,
+        extent=(x[0], x[-1], t_rel[-1], t_rel[0]),
+        vmin=-4 * np.std(data),
+        vmax=4 * np.std(data),
+        interpolation="none"
+    )
+
+    cbar = plt.colorbar()
+    if units is not None:
+        cbar.set_label(units)
+
+    plt.xlabel("Fibre Distance (m)")
+    plt.ylabel("Time (s)")
+    plt.tight_layout()
 
 
 # Define the location of the .hdf5 file
@@ -206,35 +193,36 @@ velocity_data, metadata, t, x = load_hdf_slice(
 )
 
 # convert velocity data to strainrate, using a custom gauge_length
-dx = x[1] - x[0]
-strainrate_data = convert_velocity_to_strainrate(velocity_data, dx, gauge_length)
+strainrate_data = convert_velocity_to_strainrate(velocity_data, metadata['dx'], gauge_length)
 x_strainrate = correct_gauge_length_offset(x, gauge_length)
 
 # calculate std deviation of strainrate, in <t_sdev>-second-long sections
 sdev_data, t_new = calculate_sdev_records(strainrate_data, t, t_sdev)
 
 # create figure
-plt.figure(figsize=(10,6))
+plt.figure(figsize=(8,6))
 plt.suptitle(hdf_file)
 
 # plots both data types on the same plot
 ax1 = plt.subplot(211)
-plot_2d_heatmap(
+plot_data(
     velocity_data, t, x,
-    ax=ax1,
-    title=f"Velocity Data",
-    cmap="seismic"
+    title="Velocity Data",
+    axis=ax1,
+    cmap="seismic",
+    units="velocity (m/s)"
 )
 
 ax2 = plt.subplot(212, sharex=ax1, sharey=ax1)
-plot_2d_heatmap(
+plot_data(
     sdev_data, t_new, x_strainrate,
-    ax=ax2,
-    title=f"Std. Dev of Strainrate. Gauge Length = {gauge_length}m",
-    cmap="viridis"
+    title=f"Velocity converted to Std. Dev of Strainrate. Gauge Length = {gauge_length}m",
+    axis=ax2,
+    cmap="viridis",
+    units="strainrate (strain/s)"
 )
+plt.xlim(x[0], x[-1])
 
-ax1.invert_yaxis()
 plt.tight_layout()
 plt.savefig("plot_hdf5_sdev.png")
 plt.show()

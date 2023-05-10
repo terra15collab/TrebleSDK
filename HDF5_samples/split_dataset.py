@@ -156,8 +156,8 @@ def plot_data(data, t, x, title=None, units=None, axis=None, cmap="gray"):
         aspect="auto",
         cmap=cmap,
         extent=(x[0], x[-1], t_rel[-1], t_rel[0]),
-        vmin=-3 * np.std(data),
-        vmax=3 * np.std(data),
+        vmin=-4 * np.std(data),
+        vmax=4 * np.std(data),
         interpolation="none"
     )
 

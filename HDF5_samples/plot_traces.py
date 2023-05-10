@@ -63,7 +63,7 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
 
         if info is True:
             # Prints dimensions of full data
-            print(f"Full Dataset Properties:")
+            print("Full Dataset Properties:")
             print(f"    Data Shape:         {data.shape}")
             print(f"    t_end - t_start:    {t[-1]-t[0]:.8f} s")
             print(f"    nt * dt_computer:   {t.shape[0] * dt}")
@@ -101,7 +101,7 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
 
         if info is True:
             # Prints dimensions of sliced output data
-            print(f"Loading data slice:")
+            print("Loading data slice:")
             print(f"    Data Shape:         {data.shape}")
             print(f"    t_end - t_start:    {t[-1]-t[0]:.8f} s")
             print(f"    nt * dt_computer:   {t.shape[0] * dt}")
@@ -111,20 +111,25 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
         return data, md, t, x
 
 
-def trace_plot(data, x_vector, t_vector, ax=None):
+def trace_plot(data, t, x, ax=None):
+    t_start = datetime.utcfromtimestamp(t[0])
+    t_rel = t - t[0]
+
     # Normalise data to dimensionless y-values which align to x-samples.
-    dx = x_vector[1] - x_vector[0]
+    dx = x[1] - x[0]
     norm_factor = np.std(data) * 4
     norm_data = (data / norm_factor) * dx
-    norm_data = norm_data + x_vector
+    norm_data = norm_data + x
 
     if ax:
         plt.sca(ax)
 
-    plt.plot(t_vector, norm_data, linewidth=0.5, c="b")
+    plt.title(t_start, loc="left", fontsize=10)
+
+    plt.plot(t_rel, norm_data, linewidth=0.5, c="b")
     plt.xlabel("Time (s)")
     plt.ylabel("Fibre Distance (m)")
-    plt.xlim((t_vector[0], t_vector[-1]))
+    plt.xlim((t_rel[0], t_rel[-1]))
     plt.ylim((np.min(norm_data), np.max(norm_data)))
     plt.gca().invert_yaxis()
 
@@ -134,14 +139,14 @@ if md["data_product"] == "velocity":
     data = convert_velocity_to_strainrate(data, md["pulse_length"], md["dx"])
     x = correct_gauge_length_offset(x, md["pulse_length"])
 
-plt.figure(figsize=(12,7))
+plt.figure(figsize=(10,7))
 trace_plot(
     data,
+    t,
     x,
-    t-t[0],
     ax=plt.gca()
 )
-plt.title(f"Strainrate Traces\n{fname}")
+plt.suptitle(f"Strainrate Traces\n{fname}", fontsize=12)
 plt.tight_layout()
 plt.savefig("plot_traces.png")
 plt.show()
