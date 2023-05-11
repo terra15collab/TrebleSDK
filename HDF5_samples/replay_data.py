@@ -15,16 +15,9 @@ import h5py
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
 
-def convert_velocity_to_strainrate(data, dx, gauge_length, remove_mean=False):
-    """Convert velocity data to strainrate by performing gauge calculation."""
-    if remove_mean is True:
-        # subtracts out mean velocity (DC offset in strainrate)
-        data = data - np.mean(data, axis=0)
-
-    gauge_samples = int(round(gauge_length / dx))
-    gauge_length = gauge_samples * dx
-    data = data[:, gauge_samples:] - data[:, :-gauge_samples]
-    return data / gauge_length
+def convert_velocity_to_strainrate(data, gauge_length_m, dx):
+    gauge_samples = int(round(gauge_length_m / dx))
+    return (data[:, gauge_samples:] - data[:, :-gauge_samples]) / (gauge_samples * dx)
 
 
 def correct_gauge_length_offset(x, gauge_length):
@@ -71,7 +64,7 @@ def update_data():
         x = np.arange(md["nx"]) * md["dx"] + md["sensing_range_start"]
 
         data = convert_velocity_to_strainrate(
-            data, md["dx"], md["gauge_length"], remove_mean=True
+            data, md["gauge_length"], md["dx"]
         )
         x = correct_gauge_length_offset(x, md["gauge_length"])
 

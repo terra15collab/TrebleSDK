@@ -115,7 +115,7 @@ def plot_data(data, t, x, title=None, units=None, axis=None, cmap="gray"):
     if title is not None:
         plt.suptitle(title, fontsize=12)
 
-    plt.title(t_start, loc="left", fontsize=10)
+    plt.title(f"UTC {t_start}", loc="left", fontsize=10)
 
     plt.imshow(
         data,

@@ -124,7 +124,7 @@ def trace_plot(data, t, x, ax=None):
     if ax:
         plt.sca(ax)
 
-    plt.title(t_start, loc="left", fontsize=10)
+    plt.title(f"UTC {t_start}", loc="left", fontsize=10)
 
     plt.plot(t_rel, norm_data, linewidth=0.5, c="b")
     plt.xlabel("Time (s)")

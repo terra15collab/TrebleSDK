@@ -91,13 +91,9 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
         return data, md, t, x
 
 
-def convert_velocity_to_strainrate(velocity, dx, gauge_length):
-    """Convert velocity data to strainrate by performing gauge calculation."""
-    gauge_samples = int(round( gauge_length / dx ))
-    gauge_length  = gauge_samples * dx
-    strain_rate = velocity[:, gauge_samples:] - velocity[:, :-gauge_samples]
-    strain_rate = strain_rate / gauge_length
-    return strain_rate
+def convert_velocity_to_strainrate(data, gauge_length_m, dx):
+    gauge_samples = int(round(gauge_length_m / dx))
+    return (data[:, gauge_samples:] - data[:, :-gauge_samples]) / (gauge_samples * dx)
 
 
 def correct_gauge_length_offset(x_vector, gauge_length):
@@ -154,7 +150,7 @@ def plot_data(data, t, x, title=None, units=None, axis=None, cmap="gray"):
     if title is not None:
         plt.suptitle(title, fontsize=12)
 
-    plt.title(t_start, loc="left", fontsize=10)
+    plt.title(f"UTC {t_start}", loc="left", fontsize=10)
 
     plt.imshow(
         data,
@@ -193,7 +189,7 @@ velocity_data, metadata, t, x = load_hdf_slice(
 )
 
 # convert velocity data to strainrate, using a custom gauge_length
-strainrate_data = convert_velocity_to_strainrate(velocity_data, metadata['dx'], gauge_length)
+strainrate_data = convert_velocity_to_strainrate(velocity_data, gauge_length, metadata['dx'])
 x_strainrate = correct_gauge_length_offset(x, gauge_length)
 
 # calculate std deviation of strainrate, in <t_sdev>-second-long sections
