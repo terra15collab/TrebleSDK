@@ -30,7 +30,7 @@ hdf5_data_file = "../sample_data/v5_compatible.h5"
 CROP_DURATION = 1 # (s)
 # The trigger reference file must contain a column named "Time", containing a list of trigger time strings.
 # Trigger time strings are assumed to be defined in UTC.
-trigger_reference_file = "split_dataset_triggers.csv"
+trigger_reference_file = "split_data_triggers.csv"
 input_time_string_format = " %Y/%m/%d %H:%M:%S.%f"
 
 ######################################################################################################################
