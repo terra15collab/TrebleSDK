@@ -1,5 +1,5 @@
 """
-Script to split a single Treble data file into multiple virtual hdf5 files (.vhdf5) of a specified time duration.
+Split a single Treble data file into multiple virtual hdf5 files (.vhdf5) of a specified time duration.
 Virtual data files represent links to the original dataset, and must remain in the same directory to be accessed.
 """
 
@@ -13,6 +13,7 @@ hdf5_data_file = "../sample_data/v5_compatible.h5"
 
 # DESIRED OUTPUT FILE DURATION
 file_duration = 0.5 # seconds
+
 ######################################################################################################################
 
 from pathlib import Path
@@ -57,7 +58,7 @@ def split_hdf5_file(source_hdf5_file, split_duration):
     # Creates virtual mapping to new .vhdf5 files
     split_filenames = []
     for n, (i1, t1) in enumerate(zip(split_indexes[:], split_times[:])):
-        dest_fname = save_directory.joinpath(f"{correct_timestamp_format(t1)}.vhdf5")
+        dest_fname = save_directory.joinpath(f"{correct_timestamp_format(t1)}_seq_{str(n).zfill(11)}.vhdf5")
         split_filenames.append(dest_fname)
         print(dest_fname)
 
