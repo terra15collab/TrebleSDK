@@ -1,10 +1,22 @@
 """Example script to plot abbreviated RMS of Treble hdf5 data."""
 
+
+### Set parameters ###############################################################
+
+# File to load
+hdf_file = "../sample_data/example_triggered_shot.hdf5"
+# Gauge length to apply if data is 'velocity' datatype
+gauge_length = 20  # (meters)
+# Time window to calculate RMS over
+rms_time = 0.05 # (s)
+
+##########################################################################################
+
+
 import matplotlib.pyplot as plt
 import h5py
 import numpy as np
 from datetime import datetime
-import matplotlib.dates as mdates
 
 
 def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop=None, info=True):
@@ -175,9 +187,6 @@ def calculate_rms(array_2d, t_vector, t_rms):
         raise ValueError('Invalid RMS duration')
 
 
-hdf_file = "../sample_data/example_triggered_shot.hdf5"
-gauge_length = 20  # (meters)
-rms_time = 0.05 # (s)
 
 # loads data
 data, metadata, t, x = load_hdf_slice(

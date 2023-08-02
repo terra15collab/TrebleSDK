@@ -3,6 +3,8 @@ Example script using PYQTGRAPH to replay data from a Terra15 Treble .hdf5 data f
 """
 
 ### Set playback parameters ###############################################################
+file_path = "../sample_data/example_triggered_shot.hdf5"
+
 t_offset = 0
 t_window = 1
 data_step_rate = 0.05
@@ -32,7 +34,6 @@ def correct_gauge_length_offset(x, gauge_length):
     x_correct = x_correct + gauge_length / 2
     return x_correct
 
-file_path = "../sample_data/example_triggered_shot.hdf5"
 
 app = pg.mkQApp("Plotting Example")
 

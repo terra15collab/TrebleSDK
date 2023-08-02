@@ -4,7 +4,17 @@ import matplotlib.pyplot as plt
 import h5py
 import numpy as np
 from datetime import datetime
-import matplotlib.dates as mdates
+
+
+### Set parameters ###############################################################
+
+# Name of file to load
+hdf_file = "../sample_data/example_triggered_shot.hdf5"
+
+# Gauge length to apply if data is 'velocity' datatype
+gauge_length = 5  # (meters)
+
+##########################################################################################
 
 
 def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop=None, info=True):
@@ -141,11 +151,6 @@ def correct_gauge_length_offset(x_vector, gauge_length):
     x_correct = x_correct + gauge_length / 2
     return x_correct
 
-
-hdf_file = "../sample_data/example_triggered_shot.hdf5"
-
-
-gauge_length = 5  # (meters)
 
 # loads data
 data, metadata, t, x = load_hdf_slice(

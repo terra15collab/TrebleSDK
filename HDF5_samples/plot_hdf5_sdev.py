@@ -1,10 +1,20 @@
-"""Example for loading + plotting Terra15 Treble .hdf5 data."""
+"""Example for loading + plotting Standard Deviation of Terra15 Treble .hdf5 data."""
+
+### Set parameters ###############################################################
+
+# Define the location of the .hdf5 file
+hdf_file = "../sample_data/example_triggered_shot.hdf5"
+# Define the gauge length
+gauge_length = 10  # (meters)
+# Define time over which to calculate standard deviation summary data
+t_sdev = 0.01 # (s)
+
+##########################################################################################
 
 import h5py
 from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 
 
 def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop=None, info=True):
@@ -171,15 +181,8 @@ def plot_data(data, t, x, title=None, units=None, axis=None, cmap="gray"):
     plt.tight_layout()
 
 
-# Define the location of the .hdf5 file
-hdf_file = "../sample_data/example_triggered_shot.hdf5"
-# Define the gauge length
-gauge_length = 10  # (meters)
-# Define time over which to calculate standard deviation summary data
-t_sdev = 0.01 # (s)
-
 # Read data, cropped from 0.5 seconds into the file until 2 seconds in
-# and only between locations 1950 - 2050 meters.
+# and only between locations 0 - 900 meters.
 velocity_data, metadata, t, x = load_hdf_slice(
     hdf_file,
     t_start=0.5,

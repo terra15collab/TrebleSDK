@@ -1,5 +1,12 @@
 """Example script to plot abbreviated RMS of Treble hdf5 data."""
 
+
+### Set parameters ###############################################################
+hdf_file = "../sample_data/example_triggered_shot.hdf5"
+gauge_length = 20  # (meters)
+##########################################################################################
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
@@ -180,8 +187,6 @@ def plot_fft(fft, frequencies, title=None, label=None, ax=None):
     plt.grid(visible=True, which="both")
 
 
-hdf_file = "../sample_data/example_triggered_shot.hdf5"
-gauge_length = 20  # (meters)
 
 # loads data
 data, metadata, t, x = load_hdf_slice(

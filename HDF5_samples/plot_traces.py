@@ -1,14 +1,17 @@
 """Demo script to load strainrate data and visualise individual traces."""
 
-import h5py
-import matplotlib.pyplot as plt
-import numpy as np
-from datetime import datetime
 
 ### Set parameters ###############################################################
 fname = r"../sample_data/example_triggered_shot.hdf5"
 T_DURATION = 2 # (s)
 ##########################################################################################
+
+
+import h5py
+import matplotlib.pyplot as plt
+import numpy as np
+from datetime import datetime
+
 
 def convert_velocity_to_strainrate(data, gauge_length_m, dx):
     gauge_samples = int(round(gauge_length_m / dx))

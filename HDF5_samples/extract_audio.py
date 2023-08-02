@@ -1,5 +1,4 @@
 """Example script to extract and save spatially-averaged audio data from one or more Treble .hdf5 recordings."""
-import os
 
 ### Set parameters ###############################################################
 data_directory = "../sample_data/"
@@ -9,7 +8,7 @@ x_start = 0 # (m)
 x_stop = 700 # (m)
 ##########################################################################################
 
-
+import os
 import numpy as np
 import h5py
 from tqdm import tqdm
