@@ -1,6 +1,6 @@
 """
 Split a single Treble data file into multiple virtual hdf5 files (.vhdf5) of a specified time duration.
-Virtual data files represent links to the original dataset, and must remain in the same directory to be accessed.
+Virtual data files represent links to the original dataset, and must remain in the same relative directory to be accessed.
 """
 
 # INPUT PARAMETERS
@@ -17,7 +17,6 @@ file_duration = 0.5 # seconds
 ######################################################################################################################
 
 from pathlib import Path
-
 import h5py
 from datetime import datetime
 import numpy as np
@@ -27,12 +26,12 @@ def correct_timestamp_format(timestamp):
     return datetime.utcfromtimestamp(timestamp).strftime('UTC-YMD%Y%m%d-HMS%H%M%S.%fZ')
 
 
-def split_hdf5_file(source_hdf5_file, split_duration):
-    save_directory = hdf5_data_file.parent.joinpath(f"{split_duration:.1f}s_split_files")
+def split_hdf5_file(source_file, split_duration):
+    save_directory = source_file.parent.joinpath(f"{split_duration:.1f}s_split_files")
     save_directory.mkdir(exist_ok=True)
 
     # Get split parameters from source file
-    with h5py.File(source_hdf5_file, "r") as f_in:
+    with h5py.File(source_file, "r") as f_in:
         # determines number of samples in each split file
         n_split = int(split_duration/f_in.attrs.get("dt_computer"))
         nt = f_in["data_product/data"].shape[0]
@@ -46,46 +45,44 @@ def split_hdf5_file(source_hdf5_file, split_duration):
             split_times = f_in["data_product/posix_time"][split_indices]
 
     # Creates mapping to new .vhdf5 files
-    for n, (i1, t1) in enumerate(zip(split_indices[:], split_times[:])):
-        dest_fname = save_directory.joinpath(f"{correct_timestamp_format(t1)}_seq_{str(n).zfill(11)}.vhdf5")
-        print(dest_fname)
+    for n, (i0, t0) in enumerate(zip(split_indices[:], split_times[:])):
+        dest_file = save_directory.joinpath(f"{correct_timestamp_format(t0)}_seq_{str(n).zfill(11)}.vhdf5")
+        print(dest_file)
 
         # checks for last file case.
-        if i1 + n_split > nt:
-            n_split = nt - i1
+        if i0 + n_split > nt:
+            n_split = nt - i0
 
         # splits main dataset
-        split_dataset_virtual(
+        virtual_split_dataset(
             "data_product/data",
-            source_hdf5_file,
-            dest_fname,
+            source_file,
+            dest_file,
             (n_split, nx),
-            i1,
+            i0,
         )
         # splits time arrays
         for dset_name in ["posix_time", "gps_time"]:
             try:
-                split_dataset_virtual(
+                virtual_split_dataset(
                     f"data_product/{dset_name}",
-                    source_hdf5_file,
-                    dest_fname,
+                    source_file,
+                    dest_file,
                     (n_split,),
-                    i1
+                    i0
                 )
             except KeyError:
                 print(f"Dataset {dset_name} not found in original file.")
 
         # copies diagnostic data
-        with h5py.File(source_hdf5_file, "r") as f_in:
-            with h5py.File(dest_fname, "a") as f_out:
-                f_in.copy("diagnostics", f_out)
+        copy_group(source_file, dest_file, "diagnostics")
 
         # copies attributes from original file
-        copy_dataset_attributes(source_hdf5_file, dest_fname, ".")
-        copy_dataset_attributes(source_hdf5_file, dest_fname, "data_product")
-        fix_timing_attributes(dest_fname)
+        copy_attributes(source_file, dest_file, ".")
+        copy_attributes(source_file, dest_file, "data_product")
+        fix_timing_attributes(dest_file)
 
-        with h5py.File(dest_fname, "r") as f_out:
+        with h5py.File(dest_file, "r") as f_out:
             print(f_out["data_product/data"])
             try:
                 print(f"File Length: {f_out['data_product/gps_time'][-1] - f_out['data_product/gps_time'][0]}s")
@@ -95,7 +92,7 @@ def split_hdf5_file(source_hdf5_file, split_duration):
     return save_directory, list(save_directory.glob("*.vhdf5"))
 
 
-def split_dataset_virtual(dataset_name, source_fname, dest_fname, dest_shape, i1):
+def virtual_split_dataset(dataset_name, source_fname, dest_fname, dest_shape, i0):
     # gets source file parameters
     with h5py.File(source_fname, "r") as f_in:
         try:
@@ -108,17 +105,24 @@ def split_dataset_virtual(dataset_name, source_fname, dest_fname, dest_shape, i1
     with h5py.File(dest_fname, "a") as f_out:
         vsource = h5py.VirtualSource(source_fname, dataset_name, shape=source_shape, dtype=dtype)
         layout = h5py.VirtualLayout(shape=dest_shape, dtype=dtype)
-        layout[:] = vsource[i1:i1 + dest_shape[0]]
+        layout[:] = vsource[i0:i0 + dest_shape[0]]
         f_out.create_virtual_dataset(dataset_name, layout, fillvalue=0)
 
-    copy_dataset_attributes(source_fname, dest_fname, dataset_name)
+    # Duplicates attributes
+    copy_attributes(source_fname, dest_fname, dataset_name)
 
 
-def copy_dataset_attributes(source_file, dest_file, dataset_name):
+def copy_attributes(source_file, dest_file, group_name):
     with h5py.File(source_file, "r") as f_in:
         with h5py.File(dest_file, "a") as f_out:
-            attrs = dict(f_in[dataset_name].attrs)
-            f_out[dataset_name].attrs.update(attrs)
+            attrs = dict(f_in[group_name].attrs)
+            f_out[group_name].attrs.update(attrs)
+
+
+def copy_group(source_file, dest_file, dataset_name):
+    with h5py.File(source_file, "r") as f_in:
+        with h5py.File(dest_file, "a") as f_out:
+            f_in.copy(dataset_name, f_out)
 
 
 def fix_timing_attributes(dest_file):
