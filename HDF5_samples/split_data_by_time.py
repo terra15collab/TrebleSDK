@@ -1,21 +1,22 @@
 """
 Split a single Treble data file into multiple virtual hdf5 files (.vhdf5) of a specified time duration.
-Virtual data files represent links to the original dataset, and must remain in the same relative directory to be accessed.
+Virtual datasets use relative path links to the original dataset, so must remain with the source data be accessed.
 """
 
 # INPUT PARAMETERS
 #####################################################################################################################
 
 # Define the path to the .h5 virtual hdf5 file or single .hdf5 file to split.
-# hdf5_data_file = "../sample_data/v5_compatible.h5"
+hdf5_data_file = "../sample_data/v5_compatible.h5"
 # OR
-hdf5_data_file = "../sample_data/example_triggered_shot.hdf5"
+# hdf5_data_file = "../sample_data/example_triggered_shot.hdf5"
 
 # DESIRED OUTPUT FILE DURATION
 file_duration = 0.5 # seconds
 
 ######################################################################################################################
 
+import os.path
 from pathlib import Path
 import h5py
 from datetime import datetime
@@ -27,6 +28,7 @@ def correct_timestamp_format(timestamp):
 
 
 def split_hdf5_file(source_file, split_duration):
+    print(f"Splitting {source_file} into {split_duration}s files.")
     save_directory = source_file.parent.joinpath(f"{split_duration:.1f}s_split_files")
     save_directory.mkdir(exist_ok=True)
 
@@ -47,7 +49,7 @@ def split_hdf5_file(source_file, split_duration):
     # Creates mapping to new .vhdf5 files
     for n, (i0, t0) in enumerate(zip(split_indices[:], split_times[:])):
         dest_file = save_directory.joinpath(f"{correct_timestamp_format(t0)}_seq_{str(n).zfill(11)}.vhdf5")
-        print(dest_file)
+        print(f"Saving split data to to {dest_file}")
 
         # checks for last file case.
         if i0 + n_split > nt:
@@ -60,6 +62,7 @@ def split_hdf5_file(source_file, split_duration):
             dest_file,
             (n_split, nx),
             i0,
+            relative=True
         )
         # splits time arrays
         for dset_name in ["posix_time", "gps_time"]:
@@ -69,13 +72,17 @@ def split_hdf5_file(source_file, split_duration):
                     source_file,
                     dest_file,
                     (n_split,),
-                    i0
+                    i0,
+                    relative=True
                 )
             except KeyError:
                 print(f"Dataset {dset_name} not found in original file.")
 
         # copies diagnostic data
-        copy_group(source_file, dest_file, "diagnostics")
+        try:
+            copy_group(source_file, dest_file, "diagnostics")
+        except KeyError:
+            print("No 'diagnostics' data found in original file.")
 
         # copies attributes from original file
         copy_attributes(source_file, dest_file, ".")
@@ -83,7 +90,6 @@ def split_hdf5_file(source_file, split_duration):
         fix_timing_attributes(dest_file)
 
         with h5py.File(dest_file, "r") as f_out:
-            print(f_out["data_product/data"])
             try:
                 print(f"File Length: {f_out['data_product/gps_time'][-1] - f_out['data_product/gps_time'][0]}s")
             except KeyError:
@@ -92,7 +98,7 @@ def split_hdf5_file(source_file, split_duration):
     return save_directory, list(save_directory.glob("*.vhdf5"))
 
 
-def virtual_split_dataset(dataset_name, source_fname, dest_fname, dest_shape, i0):
+def virtual_split_dataset(dataset_name, source_fname, dest_fname, dest_shape, i0, relative=True):
     # gets source file parameters
     with h5py.File(source_fname, "r") as f_in:
         try:
@@ -101,9 +107,11 @@ def virtual_split_dataset(dataset_name, source_fname, dest_fname, dest_shape, i0
         except KeyError:
             print(f"Dataset {dataset_name} not found in original file.")
 
-    # Maps source file to virtual dataset
+    if relative:
+        dp_path = os.path.relpath(source_fname, os.path.dirname(dest_fname))
+    else: dp_path = source_fname
     with h5py.File(dest_fname, "a") as f_out:
-        vsource = h5py.VirtualSource(source_fname, dataset_name, shape=source_shape, dtype=dtype)
+        vsource = h5py.VirtualSource(dp_path, dataset_name, shape=source_shape, dtype=dtype)
         layout = h5py.VirtualLayout(shape=dest_shape, dtype=dtype)
         layout[:] = vsource[i0:i0 + dest_shape[0]]
         f_out.create_virtual_dataset(dataset_name, layout, fillvalue=0)
