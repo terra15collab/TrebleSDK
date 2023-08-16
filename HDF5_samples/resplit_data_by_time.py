@@ -8,11 +8,10 @@ Virtual datasets use relative path links to the original dataset, so must remain
 #####################################################################################################################
 
 # Define a directory containing multiple Treble .hdf5 files to re-split.
-# If no directory exists, run split_data_by_time.py on one of the files in ../sample_data/ to generate a directory of virtual .hdf5 files.
-# source_directory = "../sample_data/0.5s_split_files"
+source_directory = "../sample_data"
 
 # DESIRED OUTPUT FILE DURATION
-file_duration = 0.5 # seconds
+split_duration = 0.5 # seconds
 
 ######################################################################################################################
 
@@ -219,4 +218,4 @@ def fix_timing_attributes(dest_file):
 
 source_directory = Path(source_directory).resolve()
 combined_file = combine_hdf5_files(source_directory)
-save_directory, split_files = split_hdf5_file(combined_file, file_duration)
+save_directory, split_files = split_hdf5_file(combined_file, split_duration)
