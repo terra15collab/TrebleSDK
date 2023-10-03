@@ -1,6 +1,7 @@
 """
-Script to crop out multiple triggered sections of data from a continuous Treble dataset based on a list of trigger times.
-Trigger times are defined as strings in a .csv file.
+Script to crop out multiple sections of data from a continuous Treble dataset based on a list of ASCII time values.
+Times are defined as ASCII strings in a .csv file.
+Data output includes PRE_TRIGGER_DURATION seconds of data before the trigger time.
 
 To process data across multiple contiguous .hdf5 files, first create a virtual v5_compatible.h5 file in the data directory containing the original
 .hdf5 data files. This .v5 file allows the indexing of multiple .hdf5 files as a single dataset, enabling simpler and faster
@@ -21,13 +22,12 @@ v5_compatible.h5 can be created by following these steps on a Treble, or a Linux
 # INPUT PARAMETERS
 #####################################################################################################################
 
-# Define the path to a previously created .h5 virtual hdf5 file or single .hdf5 file.
-hdf5_data_file = "../sample_data/v5_compatible.h5"
-# OR
-# hdf5_data_file = "../sample_data/example_triggered_shot.hdf5"
+# Define the path to a .h5 virtual hdf5 file or .hdf5 file.
+hdf5_data_file = "../sample_data/example_triggered_shot.hdf5"
 
 # Define trigger processing parameters
-CROP_DURATION = 1 # (s)
+POST_TRIGGER_DURATION = 1 # (s)
+PRE_TRIGGER_DURATION = 0.1 # (s)
 # The trigger reference file must contain a column named "Time", containing a list of trigger time strings.
 # Trigger time strings are assumed to be defined in UTC.
 trigger_reference_file = "split_data_triggers.csv"
@@ -78,24 +78,26 @@ def isoformat_timestamp(timestamp: float) -> str:
     return f"{datetime.utcfromtimestamp(timestamp).isoformat()}Z"
 
 
-def resave_triggered_data(src_hdf, dest_hdf, duration_seconds, trigger_timestamp=None):
+def resave_custom_triggers(src_hdf, dest_hdf, trigger_timestamp, post_trigger_seconds, pre_trigger_seconds=0.):
+    crop_duration = post_trigger_seconds + pre_trigger_seconds
+    t_start = trigger_timestamp - pre_trigger_seconds
+
     with h5py.File(src_hdf, "r") as src_file:
         src_attrs = dict(src_file.attrs)
 
-        if trigger_timestamp:
-            t1 = np.where(src_file["data_product/gps_time"][:] > trigger_timestamp)[0][0]
-        elif "trigger_start_line" in list(src_file.attrs.keys()):
-            t1 = src_attrs['trigger_start_line']
-            # if t1 == -1: t1=0
-        else:
-            raise AttributeError(
-                f"No trigger_start_line found in file attributes. Unable to resave {src_hdf}"
-            )
-        t2 = t1 + int(duration_seconds // src_attrs["dt_computer"]) + 1
+        # Converts timestamps to line numbers to crop
+        if t_start < src_file["data_product/gps_time"][0]:
+            raise ValueError(f"Trigger time {isoformat_timestamp(t_start)} is before start of file.")
 
+        t1 = np.where(src_file["data_product/gps_time"][:] > t_start)[0][0]
+        t2 = t1 + int(crop_duration // src_attrs["dt_computer"]) + 1
+
+        # Determines location of trigger line within file to update attributes
+        i_trigger = np.where(src_file["data_product/gps_time"][:] > trigger_timestamp)[0][0]
+        trigger_start_line = i_trigger - t1
 
         assert src_attrs["nt"] >= t2, (
-            f"File is not long enough to crop {duration_seconds}s worth of lines, "
+            f"File is not long enough to crop {crop_duration}s worth of lines, "
             f"time after trigger is: {(src_attrs['nt'] - src_attrs['trigger_start_line']) * src_attrs['dt_computer']:.2f}s"
         )
 
@@ -125,7 +127,8 @@ def resave_triggered_data(src_hdf, dest_hdf, duration_seconds, trigger_timestamp
             src_updated = copy.deepcopy(src_attrs)
             src_updated.update(
                 {
-                    "trigger_start_line": 0,
+                    "trigger_start_line": trigger_start_line,
+                    "trigger_start_time": trigger_timestamp,
                     "file_start_computer_time": new_start_time_computer,
                     "file_start_computer_time_string": isoformat_timestamp(new_start_time_computer),
                     "file_start_gps_time": new_start_time_gps,
@@ -171,6 +174,7 @@ def plot_data(data, t, x, title=None, units=None, axis=None, cmap="gray"):
 
 
 # Get file time boundaries
+print(f"Checking time boundaries: {hdf5_data_file}")
 with h5py.File(hdf5_data_file, "r") as f:
     t_min = f["data_product"]["gps_time"][0]
     t_max = f["data_product"]["gps_time"][-1]
@@ -189,18 +193,28 @@ for i, row in trigger_data.iterrows():
 
     if t_min < trig.timestamp() < t_max:
         try:
-            print(f"Processing trigger : {trig.strftime(input_time_string_format)}")
-            output_filename = trig_name + "_cropped_data.hdf5"
+            print(f"Processing custom trigger : {trig.strftime(input_time_string_format)}")
+            timestring = trig.strftime("UTC-YMD%Y%m%d-HMS%H%M%S.%f")
 
-            resave_triggered_data(hdf5_data_file, output_filename, CROP_DURATION, trigger_timestamp=trig.timestamp())
+            output_filename = timestring + "_trigger_data.hdf5"
+
+            resave_custom_triggers(
+                hdf5_data_file,
+                output_filename,
+                trig.timestamp(),
+                POST_TRIGGER_DURATION,
+                pre_trigger_seconds=PRE_TRIGGER_DURATION
+            )
 
             # Checks data validity by re-loading and plotting.
-            data, md, t, x = simple_load_data(output_filename, CROP_DURATION)
+            data, md, t, x = simple_load_data(output_filename, POST_TRIGGER_DURATION + PRE_TRIGGER_DURATION)
             data = convert_velocity_to_strainrate(data, md['pulse_length'], md['dx'])
             x = correct_gauge_length_offset(x, md["pulse_length"])
 
             plot_data(data, t, x, title=output_filename, units="strainrate (strain/s)")
-            plt.savefig(trig_name + "_cropped_data.png")
+            plt.savefig(timestring + "_trigger_data.png")
+
+            print(f"Successfully re-saved data for trigger: {trig.strftime(input_time_string_format)}")
 
         except Exception as e:
             print(f"Could not process data for trigger: {trig.strftime(input_time_string_format)}")
@@ -208,4 +222,4 @@ for i, row in trigger_data.iterrows():
 
 
     else:
-        print(f"Trigger time {trig.strftime(input_time_string_format)} is outside time limits of file.")
+        print(f"Trigger time {trig.strftime(input_time_string_format)} is outside time limits of the file.")
