@@ -4,6 +4,7 @@
 ### Set parameters ###############################################################
 fname = r"../sample_data/example_triggered_shot.hdf5"
 T_DURATION = 2 # (s)
+LOCAL_VELOCITY_FILTER_LENGTH = 50 # (m) Length of the local velocity filter. Wavelengths above <LOCAL_VELOCITY_FILTER_LENGTH> will be filtered out.
 ##########################################################################################
 
 
@@ -11,11 +12,13 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
+from scipy import signal
 
 
 def convert_velocity_to_strainrate(data, gauge_length_m, dx):
     gauge_samples = int(round(gauge_length_m / dx))
     return (data[:, gauge_samples:] - data[:, :-gauge_samples]) / (gauge_samples * dx)
+
 
 def correct_gauge_length_offset(x_vector, gauge_length):
     """Compensate for distance shift of data caused by gauge_length calculation."""
@@ -113,6 +116,22 @@ def load_hdf_slice(filepath, t_start=None, t_duration=None, x_start=None, x_stop
             print(f"    Distance:           [{x[0]:.1f} : {x[-1]:.1f}] m")
         return data, md, t, x
 
+def convert_velocity_to_local_velocity(
+    data: np.ndarray, dx: float, velocity_filter_length: float
+):
+    # Create a high-pass filter of the suitable length
+    b = np.array([1.0, -1.0])
+    k0 = 2 * np.pi / velocity_filter_length
+    a = np.array([1.0 + k0 * dx / 2, -1.0 + k0 * dx / 2])
+    # Apply in chunks to avoid memory issues
+    chunk_size = 10000
+    converted_data = data.copy()
+    for i in range(0, data.shape[0], chunk_size):
+        converted_data[i : i + chunk_size, :] = signal.filtfilt(
+            b, a, data[i : i + chunk_size, :], axis=1
+        )
+
+    return converted_data
 
 def trace_plot(data, t, x, ax=None):
     t_start = datetime.utcfromtimestamp(t[0])
@@ -136,20 +155,65 @@ def trace_plot(data, t, x, ax=None):
     plt.ylim((np.min(norm_data), np.max(norm_data)))
     plt.gca().invert_yaxis()
 
+
 data, md, t, x = load_hdf_slice(fname, t_duration=T_DURATION)
 
-if md["data_product"] == "velocity":
-    data = convert_velocity_to_strainrate(data, md["pulse_length"], md["dx"])
-    x = correct_gauge_length_offset(x, md["pulse_length"])
 
-plt.figure(figsize=(10,7))
-trace_plot(
-    data,
-    t,
-    x,
-    ax=plt.gca()
-)
-plt.suptitle(f"Strainrate Traces\n{fname}", fontsize=12)
-plt.tight_layout()
-plt.savefig("plot_traces.png")
+if md["data_product"] == "velocity":
+    print(f"Data product is {md['data_product']}.")
+    # Plots raw velocity data
+    plt.figure(figsize=(10, 7))
+    trace_plot(
+        data,
+        t,
+        x,
+        ax=plt.gca()
+    )
+    plt.suptitle(f"Velocity Traces\n{fname}", fontsize=12)
+    plt.tight_layout()
+    plt.savefig("plot_traces_velocity.png")
+
+    # Converts velocity->local velocity and plots local velocity data
+    print(f"Converting velocity to local velocity")
+    local_velocity_data = convert_velocity_to_local_velocity(data, md["dx"], 50)
+    plt.figure(figsize=(10, 7))
+    trace_plot(
+        local_velocity_data,
+        t,
+        x,
+        ax=plt.gca()
+    )
+    plt.suptitle(f"Local Velocity Traces\n{fname}", fontsize=12)
+    plt.tight_layout()
+    plt.savefig("plot_traces_local_velocity.png")
+
+    # Converts velocity->strain-rate and plots strain-rate data
+    print(f"Converting velocity to strain-rate")
+    strainrate_data = convert_velocity_to_strainrate(data, md["pulse_length"], md["dx"])
+    x = correct_gauge_length_offset(x, md["pulse_length"])
+    plt.figure(figsize=(10, 7))
+    trace_plot(
+        strainrate_data,
+        t,
+        x,
+        ax=plt.gca()
+    )
+    plt.suptitle(f"Strainrate Traces\n{fname}", fontsize=12)
+    plt.tight_layout()
+    plt.savefig("plot_traces_strainrate.png")
+elif md["data_product"] == "strainrate":
+    print(f"Data product is {md['data_product']}.")
+    plt.figure(figsize=(10, 7))
+    trace_plot(
+        data,
+        t,
+        x,
+        ax=plt.gca()
+    )
+    plt.suptitle(f"Strainrate Traces\n{fname}", fontsize=12)
+    plt.tight_layout()
+    plt.savefig("plot_traces_strainrate.png")
+else:
+    print(f"Data product {md['data_product']} not recognised.")
+
 plt.show()
