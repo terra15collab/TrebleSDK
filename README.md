@@ -14,6 +14,7 @@ Sample code shows how to process data from both .hdf5 data files and realtime fr
      
    ```
    conda create --name treblesdk python=3.9
+   conda activate treblesdk
    wget --content-disposition https://terra15.com.au/download/latestlinuxapi_cp39_v6.whl
    pip install treble-*-linux_x86_64.whl
    conda install pyqt pyqtgraph
