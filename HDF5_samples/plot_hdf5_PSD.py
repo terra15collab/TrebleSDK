@@ -1,8 +1,8 @@
 """
-Example script to plot the FFT Treble hdf5 data.
-Uses 2 methods to calculate the FFT:
-1) FFT of the mean signal
-2) Mean of the FFTs.
+Example script to plot correctly weighted Power Spectral Density of Treble hdf5 data.
+Uses 2 methods to calculate the PSD:
+1) PSD of the mean signal
+2) Mean of the PSDs.
 """
 
 
@@ -14,6 +14,7 @@ gauge_length = 20  # (meters)
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import welch
 import h5py
 from datetime import datetime
 
@@ -119,64 +120,7 @@ def correct_gauge_length_offset(x_vector, gauge_length):
     return x_correct
 
 
-def calculate_fft_of_avg_signal(data_array, dt):
-    """
-    Averages signal at every fiber location, then calculates time-domain fft of average signal.
-
-    Args:
-        data_array: 2D data array, dimensions (nt, nx)
-        dt: Time-axis sample spacing.
-
-    Returns:
-        abs_fft: FFT of average signal in fiber section.
-        frequencies: Corresponding frequencies.
-    """
-    # average data in space
-    avg_signal = np.mean(data_array, axis=1)
-
-    # calculate fft
-    cplx_fft = np.fft.rfft(avg_signal)
-    abs_fft = np.abs(cplx_fft)
-    abs_fft = abs_fft[1:]
-
-    # frequency array
-    nt = data_array.shape[0]
-    frequencies = np.fft.rfftfreq(nt, dt)
-    frequencies = frequencies[1:]
-
-    return abs_fft, frequencies
-
-
-def calculate_space_avg_of_ffts(data_array, dt):
-    """
-    Calculates time-domain fft at every fiber location, then averages FFTs in space.
-
-    Args:
-        data_array: 2D data array, dimensions (nt, nx)
-        dt: Time-axis sample spacing.
-
-    Returns:
-        avg_fft: Avg of all FFTs in fiber section.
-        frequencies: Corresponding frequencies.
-    """
-    # calculate fft array along time domain
-    cplx_fft = np.fft.rfft(data_array, axis=0)
-
-    # average fft^2 along space domain
-    fft_sq = np.abs(cplx_fft) ** 2
-    avg_fft_sq = np.mean(fft_sq, axis=1)
-    avg_fft = np.sqrt(avg_fft_sq)
-    avg_fft = avg_fft[1:]
-
-    # frequency array
-    nt = data_array.shape[0]
-    frequencies = np.fft.rfftfreq(nt, dt)
-    frequencies = frequencies[1:]
-
-    return avg_fft, frequencies
-
-
-def plot_fft(fft, frequencies, title=None, label=None, ax=None):
+def plot_psd(psd, frequencies, title=None, label=None, ax=None):
     # plots on existing axis
     if ax:
         plt.sca(ax)
@@ -184,22 +128,17 @@ def plot_fft(fft, frequencies, title=None, label=None, ax=None):
         # otherwise creates figure
         plt.figure(figsize=(10,6))
 
-    plt.plot(frequencies, fft, linewidth=0.7, label=label)
+    plt.plot(frequencies, psd, linewidth=0.7, label=label)
     plt.title(title)
     plt.xlabel("Frequency (Hz)")
-    plt.ylabel("FFT")
-    plt.loglog()
+    plt.ylabel("$(strain/s)^2$/Hz")
     plt.grid(visible=True, which="both")
 
 
 
 # loads data
 data, metadata, t, x = load_hdf_slice(
-    hdf_file,
-    t_start=0.5,
-    t_duration=2,
-    x_start=0,
-    x_stop=700
+    hdf_file
 )
 
 # converts to strain rate if required
@@ -207,24 +146,27 @@ if metadata["data_product"] == "velocity":
     data = convert_velocity_to_strainrate(data, gauge_length, metadata["dx"])
     x = correct_gauge_length_offset(x, gauge_length)
 
-# FFT method 1
-fft_of_mean_signal, f = calculate_fft_of_avg_signal(data, metadata['dt_computer'])
-plot_fft(
-    fft_of_mean_signal,
+# AVERAGE SIGNAL ACROSS ALL SPATIAL LOCATIONS, THEN CALCULATE PSD
+mean_signal = np.mean(data, axis=1)
+f, psd_of_mean_signal = welch(mean_signal, fs=1/metadata["dt_computer"], axis=0, nperseg=len(data), noverlap=0)
+plot_psd(
+    psd_of_mean_signal,
     f,
-    label="1. FFT(mean(signal)"
+    label="AVERAGE SIGNAL IN SPACE, then CALCULATE PSD"
 )
-# FFT method 2
-mean_of_ffts, _ = calculate_space_avg_of_ffts(data, metadata['dt_computer'])
-plot_fft(
-    mean_of_ffts,
+
+# CALCULATE PSD FOR EACH SPATIAL LOCATION, THEN AVERAGE PSD ACROSS ALL SPATIAL LOCATIONS
+f, psd_2d = welch(data, fs=1/metadata["dt_computer"], axis=0, nperseg=len(data), noverlap=0)
+mean_psd = np.mean(psd_2d, axis=1)
+plot_psd(
+    mean_psd,
     f,
-    label="2. mean(FFT(signal))",
+    label="CALCULATE PSD AT ALL SPATIAL LOCATIONS, then AVERAGE PSDs",
     ax=plt.gca()
 )
 plt.suptitle(hdf_file)
-plt.title("FFT of Strain Rate")
+plt.title("Power Spectral Density (PSD) of Strain Rate")
 plt.legend()
 plt.tight_layout()
-plt.savefig("plot_hdf5_fft.png")
+plt.savefig("plot_hdf5_PSD.png")
 plt.show()
