@@ -6,7 +6,7 @@ Example script using PYQTGRAPH and Client Functions to plot full raw waveform Te
 ### Pyside6 is preferred.
 
 ### The "treble" API package must be installed to run the Treble API.
-### Download links can be provided by Terra15.
+### Download links are located in the README.md file.
 
 ### SETUP PARAMETERS ################################################################################
 treble_ip = "10.0.0.90"
@@ -58,18 +58,19 @@ def update_plot():
     )
     full = full.reshape((full.shape[0] * full.shape[1], -1)).squeeze()
 
-    f, psd = welch(full, fs=1/md["dT"], nperseg=full.shape[0], axis=0)
-
     if full is None:
         return
+
+    # Calculate Power Spectral Density (PSD)
+    f, psd = welch(full, fs=1/md["dT"], nperseg=full.shape[0], axis=0)
 
     # updates image
     i1.setImage(10*np.log10(psd.transpose()), autoRange=True, autoLevels=inc==0)
 
-    # sets correct time and space axes
+    # sets correct space axis
     x = np.arange(md['nx']) * md["dx"] + md["sensing_range"][0]
 
-    # Sets plot range so that data is centered on t and x axis.
+    # Sets plot range so that data is centered on f and x axis.
     fmin=f[0]
     fmax=f[-1]
     xmin = x[0] - md['dx']/2

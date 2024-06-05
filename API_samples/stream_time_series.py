@@ -6,7 +6,7 @@ Example script using PyQTGRAPH and Terra15 Treble client functions to plot the r
 ### Pyside6 is preferred.
 
 ### The "treble" API package must be installed to run the Treble API.
-### Download links can be provided by Terra15.
+### Download links are located in the README.md file.
 
 ### SETUP PARAMETERS ################################################################################
 treble_ip = "10.0.0.225"

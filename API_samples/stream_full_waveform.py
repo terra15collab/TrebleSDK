@@ -6,10 +6,10 @@ Example script using PYQTGRAPH and Client Functions to plot full raw waveform Te
 ### Pyside6 is preferred.
 
 ### The "treble" API package must be installed to run the Treble API.
-### Download links can be provided by Terra15.
+### Download links are located in the README.md file.
 
 ### SETUP PARAMETERS ################################################################################
-treble_ip = "10.0.0.70"
+treble_ip = "10.0.0.90"
 server_port = "48000"
 n_frames = 1
 update_rate = 0.16  # (s)

@@ -1,12 +1,12 @@
 """
-Example script using PYQTGRAPH and Client Functions to plot realtime Terra15 Treble Std Dev data.
+Example script using PYQTGRAPH and Client Functions to plot realtime Terra15 Treble Standard Deviation data.
 """
 
 ### Pyside6, Pyside2, or PyQt5 must be installed for correct display.
 ### Pyside6 is preferred.
 
 ### The "treble" API package must be installed to run the Treble API.
-### Download links can be provided by Terra15.
+### Download links are located in the README.md file.
 
 ### SETUP PARAMETERS ################################################################################
 treble_ip = "10.0.0.70"

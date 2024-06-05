@@ -3,7 +3,7 @@ Example script using PYQTGRAPH and Client Functions to send alerts to Slack base
 """
 
 ### The "treble" API package must be installed to run the Treble API.
-### Download links can be provided by Terra15.
+### Download links are located in the README.md file.
 
 ### First create a Slack app to post messages to:
 ### https://api.slack.com/apps
