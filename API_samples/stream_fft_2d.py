@@ -21,6 +21,22 @@ from scipy.signal import welch
 from pyqtgraph.Qt import QtCore
 from treble import acq_client
 
+def convert_velocity_to_strainrate(data, gauge_length_m, dx):
+    gauge_samples = int(round(gauge_length_m / dx))
+    return (data[:, gauge_samples:] - data[:, :-gauge_samples]) / (gauge_samples * dx)
+
+def correct_gauge_length_offset(x_vector, gauge_length):
+    """Compensate for distance shift of data caused by gauge_length calculation."""
+    # crops end of x_vector by gauge length
+    dx = x_vector[1] - x_vector[0]
+    gauge_samples = int(round(gauge_length / dx))
+    gauge_length = gauge_samples * dx
+    x_correct = x_vector[:-gauge_samples]
+
+    # compensates for GL/2 signal offset
+    x_correct = x_correct + gauge_length / 2
+    return x_correct
+
 # setup Treble connection
 client = acq_client.acq_Client()
 client.connect_to_server(f"tcp://{treble_ip}:{server_port}")
@@ -35,7 +51,9 @@ win.setWindowTitle(f"Streaming Treble Data: {treble_ip}")
 i1 = pg.ImageItem()
 
 # Add a plot to the window
-p1 = win.addPlot(title=f"Power Spectral Density (dB)")
+p1 = win.addPlot()
+# set title of plot
+p1.setTitle(f"Power Spectral Density (dB rel 1. strain/s/√Hz)")
 p1.addItem(i1)
 p1.setLabel("left", text="Frequency (Hz)")
 p1.setLabel("bottom", text="Distance along Fibre", units="m")
@@ -56,19 +74,24 @@ def update_plot():
         list(range(-n_frames + 1, 1, 1)),
         timeout=1000,
     )
-    full = full.reshape((full.shape[0] * full.shape[1], -1)).squeeze()
 
     if full is None:
         return
+
+    full = full.reshape((full.shape[0] * full.shape[1], -1)).squeeze()
+    # sets correct space axis
+    x = np.arange(full.shape[-1]) * md["dx"] + md["sensing_range"][0]
+
+    # If data is velocity, convert to strain rate
+    if md["data_product"] in ["velocity", "deformation", "velocity_filtered", "deformation_filtered"]:
+        full = convert_velocity_to_strainrate(full, md["gauge_length"], md["dx"])
+        x = correct_gauge_length_offset(x, md["gauge_length"])
 
     # Calculate Power Spectral Density (PSD)
     f, psd = welch(full, fs=1/md["dT"], nperseg=full.shape[0], axis=0)
 
     # updates image
     i1.setImage(10*np.log10(psd.transpose()), autoRange=True, autoLevels=inc==0)
-
-    # sets correct space axis
-    x = np.arange(md['nx']) * md["dx"] + md["sensing_range"][0]
 
     # Sets plot range so that data is centered on f and x axis.
     fmin=f[0]
