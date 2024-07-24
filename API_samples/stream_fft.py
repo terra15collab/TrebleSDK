@@ -9,7 +9,7 @@ Example script using PYQTGRAPH and Client Functions to plot realtime Terra15 Tre
 ### Download links are located in the README.md file.
 
 ### SETUP PARAMETERS ################################################################################
-treble_ip = "10.0.0.70"
+treble_ip = "localhost"
 server_port = "48000"
 n_frames = 1
 update_rate = 0.16  # (s)
@@ -95,7 +95,7 @@ def update_plot():
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update_plot)
-timer.start(update_rate * 1000)
+timer.start(int(update_rate * 1000))
 
 if __name__ == "__main__":
 

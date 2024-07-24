@@ -8,7 +8,7 @@ file_path = "../sample_data/example_triggered_shot.hdf5"
 t_offset = 0
 t_window = 1
 data_step_rate = 0.05
-update_rate = 0.05
+update_rate = 0.1
 ##########################################################################################
 
 
@@ -83,7 +83,7 @@ def update_data():
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update_data)
-timer.start(update_rate)
+timer.start(int(update_rate * 1000))
 
 if __name__ == "__main__":
     pg.exec()

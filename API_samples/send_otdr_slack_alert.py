@@ -10,7 +10,7 @@ Example script using PYQTGRAPH and Client Functions to send alerts to Slack base
 
 
 ### SETUP PARAMETERS ################################################################################
-treble_ip = "10.0.0.139"
+treble_ip = "localhost"
 server_port = "48000"
 t_check = 60 # (s)
 otdr_threshold = 0.2

@@ -9,7 +9,7 @@ Example script using PyQTGRAPH and Terra15 Treble client functions to plot the r
 ### Download links are located in the README.md file.
 
 ### SETUP PARAMETERS ################################################################################
-treble_ip = "10.0.0.225"
+treble_ip = "localhost"
 server_port = "48000"
 n_frames = 10
 update_rate = 0.16  # (s)
@@ -69,7 +69,7 @@ timer = QtCore.QTimer()
 timer.timeout.connect(update_plot)
 # Increment timer every 160ms
 # This is the smallest Treble frame size - no point trying to grab Treble data more frequently than this.
-timer.start(update_rate * 1000)
+timer.start(int(update_rate * 1000))
 
 if __name__ == '__main__':
      pg.exec()
