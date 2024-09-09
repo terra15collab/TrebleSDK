@@ -126,7 +126,7 @@ for filepath in tqdm(hdf_files):
         x_stop=x_stop,
         info=True
     )
-    if metadata['data_product'] in ["velocity", "deformation", "velocity_filtered", "deformation_filtered"]:
+    if metadata['data_product'] in ["velocity", "velocity_filtered"]:
         hdf_data = hdf_data - np.mean(hdf_data, axis=0)
         hdf_data = convert_velocity_to_strainrate(hdf_data, metadata['pulse_length'], metadata['dx'])
     mean_strainrate = np.mean(hdf_data, axis=1)

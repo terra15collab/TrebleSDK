@@ -48,7 +48,7 @@ def update_plot():
     data, md = client.fetch_data_product(
         list(range(-n_frames + 1, 1, 1)),
         timeout=20000,
-        with_client_fn='convert_deformation_do_range_mean',
+        with_client_fn='convert_velocity_do_range_mean',
         client_fn_args={
             "start_index2": x_start,
             "end_index2": x_stop,

@@ -165,7 +165,7 @@ plt.figure(figsize=(8,6))
 plt.suptitle(hdf_file)
 
 # If data type is velocity, plots velocity & converted strain rate
-if metadata['data_product'] in ["velocity", "deformation", "velocity_filtered", "deformation_filtered"]:
+if metadata['data_product'] in ["velocity", "velocity_filtered"]:
     # velocity plot
     ax1 = plt.subplot(211)
     plot_data(data, t, x, title=f"{metadata['data_product']}", axis=ax1, units="velocity (m/s)")

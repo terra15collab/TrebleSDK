@@ -156,7 +156,7 @@ data, metadata, t, x = load_hdf_slice(
     hdf_file,
 )
 
-if metadata['data_product'] in ["velocity", "deformation", "velocity_filtered", "deformation_filtered"]:
+if metadata['data_product'] in ["velocity", "velocity_filtered"]:
     data = convert_velocity_to_strainrate(data, gauge_length, metadata["dx"])
     x = correct_gauge_length_offset(x, gauge_length)
 

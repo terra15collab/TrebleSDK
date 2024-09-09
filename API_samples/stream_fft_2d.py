@@ -83,7 +83,7 @@ def update_plot():
     x = np.arange(full.shape[-1]) * md["dx"] + md["sensing_range"][0]
 
     # If data is velocity, convert to strain rate
-    if md["data_product"] in ["velocity", "deformation", "velocity_filtered", "deformation_filtered"]:
+    if md["data_product"] in ["velocity", "velocity_filtered"]:
         full = convert_velocity_to_strainrate(full, md["gauge_length"], md["dx"])
         x = correct_gauge_length_offset(x, md["gauge_length"])
 
