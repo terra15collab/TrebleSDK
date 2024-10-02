@@ -2,13 +2,15 @@
 
 import h5py
 import matplotlib.pyplot as plt
-from scipy.signal import lfilter, lfilter_zi
+from scipy.signal import lfilter, butter, sosfiltfilt
 import numpy as np
 from datetime import datetime
 
 ### Set parameters ###############################################################
 fname = r"../sample_data/example_triggered_shot.hdf5"
 T_DURATION = 2 # (s)
+# High-pass filter cutoff frequency (Hz) applied to the strainrate data before integration to strain.
+F_HP = 4 # (Hz)
 ##########################################################################################
 
 
@@ -73,26 +75,29 @@ def plot_data(data, t, x, title=None, units=None, axis=None, cmap="gray"):
     plt.ylabel("Time (s)")
     plt.tight_layout()
 
-def convert_strainrate_to_strain(data, dT):
-    strain_scalar = dT
-    leaky_characteristic_period = 0.4
+def convert_strainrate_to_strain(strainrate, dt, f_hp=0.1):
+    # High-pass filter data at cutoff frequency f_hp
+    strainrate = highpass_filter(strainrate, f_hp, dt)
 
-    # Construct leaky integration filter to convert strain to strain rate
-    b = 0.5 * strain_scalar * np.array([dT, dT])
-    w0 = 2 * np.pi / leaky_characteristic_period
-    a = np.array([w0 * dT / 2 + 1, w0 * dT / 2 - 1])
-    zi=lfilter_zi(b, a)*data[0]
+    # Integrate filtered strainrate to strain
+    omega_0 = 2*np.pi*f_hp
+    b = np.array([dt, 0], dtype=strainrate.dtype)
+    a = np.array([1 + omega_0*dt,-1], dtype=strainrate.dtype)
+    strain = lfilter(b, a, strainrate, axis=0)
+    return strain
 
-    filtered_data, z_out = lfilter(b, a, data, axis=0, zi=zi[:,None].T)
 
-    return filtered_data
-
+def highpass_filter(data, f_hp, dt):
+    fs = 1/dt
+    coeff = butter(1, f_hp, btype="hp", fs=fs, output="sos")
+    data = sosfiltfilt(coeff, data, axis=0)
+    return data.astype(data.dtype)
 
 velocity, metadata, t, x = simple_load_data(fname, T_DURATION)
 
 strainrate = convert_velocity_to_strainrate(velocity, metadata['pulse_length'], metadata['dx'])
 x = correct_gauge_length_offset(x, metadata['pulse_length'])
-strain = convert_strainrate_to_strain(strainrate, metadata['dt_computer'])
+strain = convert_strainrate_to_strain(strainrate, metadata['dt_computer'], F_HP)
 
 plot_data(strainrate, t, x, "Strainrate Data", units="strainrate (strain/s)")
 plt.savefig("convert_to_strain_1.png")
