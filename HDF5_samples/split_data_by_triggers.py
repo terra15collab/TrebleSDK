@@ -23,14 +23,14 @@ v5_compatible.h5 can be created by following these steps on a Treble, or a Linux
 #####################################################################################################################
 
 # Define the path to a .h5 virtual hdf5 file or .hdf5 file.
-hdf5_data_file = "../sample_data/example_triggered_shot.hdf5"
+hdf5_data_file = "./sample_data/example_triggered_shot.hdf5"
 
 # Define trigger processing parameters
 POST_TRIGGER_DURATION = 1 # (s)
 PRE_TRIGGER_DURATION = 0.1 # (s)
 # The trigger reference file must contain a column named "Time", containing a list of trigger time strings.
 # Trigger time strings are assumed to be defined in UTC.
-trigger_reference_file = "split_data_triggers.csv"
+trigger_reference_file = "./HDF5_samples/split_data_triggers.csv"
 input_time_string_format = " %Y/%m/%d %H:%M:%S.%f"
 
 ######################################################################################################################

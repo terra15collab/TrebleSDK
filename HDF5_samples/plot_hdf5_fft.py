@@ -7,7 +7,7 @@ Uses 2 methods to calculate the FFT:
 
 
 ### Set parameters ###############################################################
-hdf_file = "../sample_data/example_triggered_shot.hdf5"
+hdf_file = "./sample_data/example_triggered_shot.hdf5"
 gauge_length = 20  # (meters)
 ##########################################################################################
 

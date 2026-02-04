@@ -6,7 +6,7 @@ Example script using PYQTGRAPH and Client Functions to plot 2D Treble Std Deviat
 ### Pyside6 is preferred.
 
 ### The "treble" API package must be installed to run the Treble API.
-### Download links are located in the README.md file.
+### Check the README.md file for installation instructions.
 
 ### SETUP PARAMETERS ################################################################################
 treble_ip = "localhost"
@@ -34,12 +34,14 @@ x_stop = 100
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
-from treble import acq_client
+from treble.acq_client import acq_Client
 
 # setup Treble connection
-client = acq_client.acq_Client()
-client.connect_to_server(f"tcp://{treble_ip}:{server_port}")
-_, md = client.fetch_data_product([-1],timeout=20000)
+client = acq_Client()
+server_address = f"tcp://{treble_ip}:{server_port}"
+print(f"Connecting to {server_address}...")
+client.connect_to_server(server_address)
+_, md = client.fetch_data_product([-1], timeout=20000)
 
 # Create window
 app = pg.mkQApp("Plotting Example")

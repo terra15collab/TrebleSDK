@@ -7,7 +7,7 @@ import numpy as np
 from datetime import datetime
 
 ### Set parameters ###############################################################
-fname = r"../sample_data/example_triggered_shot.hdf5"
+fname = r"./sample_data/example_triggered_shot.hdf5"
 T_DURATION = 2 # (s)
 # High-pass filter cutoff frequency (Hz) applied to the strainrate data before integration to strain.
 F_HP = 4 # (Hz)

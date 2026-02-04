@@ -18,6 +18,7 @@ dist/
 
 # Package files
 *.jar
+*.whl
 
 # Maven
 target/
@@ -42,6 +43,8 @@ Thumbs.db
 
 # Large media files
 *.hdf5
+*.h5
+*.vhdf5
 *.mp4
 *.wav
 *.tiff
@@ -49,4 +52,5 @@ Thumbs.db
 *.flv
 *.mov
 *.wmv
-
+*.png
+*.jpg

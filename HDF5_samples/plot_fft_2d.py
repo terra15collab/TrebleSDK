@@ -13,7 +13,7 @@ from scipy.signal import welch
 ### Set parameters ###############################################################
 
 # Name of file to load
-hdf_file = "../sample_data/example_triggered_shot.hdf5"
+hdf_file = "./sample_data/example_triggered_shot.hdf5"
 
 # Gauge length to apply if data is 'velocity' datatype
 gauge_length = 5  # (meters)

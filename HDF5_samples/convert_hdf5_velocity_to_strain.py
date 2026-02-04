@@ -5,7 +5,7 @@ Generates a new HDF5 file containing converted strain data.
 
 #####################################################################################################################
 # File to convert. Must be a Terra15 Treble .hdf5 data file in units of velocity.
-src_file = "../sample_data/example_triggered_shot.hdf5"
+src_file = "./sample_data/example_triggered_shot.hdf5"
 GAUGE_LENGTH = 5 # (m)
 # High-pass filter cutoff frequency (Hz) applied to the strainrate data before integration to strain.
 HIGH_PASS_FREQ = 4 # (Hz)
@@ -92,7 +92,7 @@ def simple_load_data(hdf_path):
 
 def convert_hdf5_to_strain(src_file, gauge_length_m, f_hp=0.1):
     if src_file.endswith('.hdf5'):
-        dst_file = src_file.replace(".hdf5", f'converted_strainrate_{gauge_length_m}m_gauge.hdf5')
+        dst_file = src_file.replace(".hdf5", f'_converted_strain_{gauge_length_m}m_gauge.hdf5')
     else:
         raise ValueError("Source file must be an HDF5 file")
     print(f"Converting {src_file} to strain with GAUGE {gauge_length_m} m, HP filter {f_hp} Hz")

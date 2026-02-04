@@ -7,9 +7,9 @@ Virtual datasets use relative path links to the original dataset, so must remain
 #####################################################################################################################
 
 # Define the path to the .h5 virtual hdf5 file or single .hdf5 file to split.
-hdf5_data_file = "../sample_data/v5_compatible.h5"
+# hdf5_data_file = "./sample_data/v5_compatible.h5"
 # OR
-# hdf5_data_file = "../sample_data/example_triggered_shot.hdf5"
+hdf5_data_file = "./sample_data/example_triggered_shot.hdf5"
 
 # DESIRED OUTPUT FILE DURATION
 file_duration = 0.5 # seconds

@@ -3,7 +3,7 @@ Example script using PYQTGRAPH and Client Functions to send alerts to Slack base
 """
 
 ### The "treble" API package must be installed to run the Treble API.
-### Download links are located in the README.md file.
+### Check the README.md file for installation instructions.
 
 ### First create a Slack app to post messages to:
 ### https://api.slack.com/apps
@@ -19,7 +19,7 @@ webhook_url = "https://hooks.slack.com/services/T046J1SAUMQ/B046J0L0G3V/74AtJN0I
 
 
 import numpy as np
-from treble import acq_client
+from treble.acq_client import acq_Client
 import time
 from datetime import datetime
 import urllib3
@@ -45,8 +45,10 @@ def send_slack_alert(message):
 
 
 # setup Treble connection
-client = acq_client.acq_Client()
-client.connect_to_server(f"tcp://{treble_ip}:{server_port}")
+client = acq_Client()
+server_address = f"tcp://{treble_ip}:{server_port}"
+print(f"Connecting to {server_address}...")
+client.connect_to_server(server_address)
 _, md = client.fetch_data_product([-1],timeout=20000)
 
 while True:
@@ -54,7 +56,7 @@ while True:
     msg = f"{check_start}" \
           f"\nOTDR Reflection Check || {md['serial_number']} || {treble_ip} || Threshold = {otdr_threshold}"
 
-    otdr, md = client.fetch_OTDR([-1], timeout=20000)
+    otdr, md = client.fetch_otdr([-1], timeout=20000)
 
     if otdr is None:
         continue

@@ -5,7 +5,7 @@ Generates a new HDF5 file containing converted strainrate data.
 
 #####################################################################################################################
 # File to convert. Must be a Terra15 Treble .hdf5 data file in units of velocity.
-src_file = "../sample_data/example_triggered_shot.hdf5"
+src_file = "./sample_data/example_triggered_shot.hdf5"
 GAUGE_LENGTH = 5 # (m)
 ######################################################################################################################
 
@@ -59,7 +59,7 @@ def simple_load_data(hdf_path):
 
 def convert_hdf5_to_strainrate(src_file, gauge_length_m):
     if src_file.endswith('.hdf5'):
-        dst_file = src_file.replace(".hdf5", f'converted_strainrate_{gauge_length_m}m_gauge.hdf5')
+        dst_file = src_file.replace(".hdf5", f'_converted_strainrate_{gauge_length_m}m_gauge.hdf5')
     else:
         raise ValueError("Source file must be an HDF5 file")
     print(f"Converting {src_file} to strainrate with GAUGE {gauge_length_m} m")

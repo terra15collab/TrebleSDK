@@ -1,7 +1,7 @@
 """Example script to extract and save spatially-averaged audio data from one or more Treble .hdf5 recordings."""
 
 ### Set parameters ###############################################################
-data_directory = "../sample_data/"
+data_directory = "./sample_data/"
 t_start = 0.1 # (s)
 t_duration = 1 # (s)
 x_start = 0 # (m)

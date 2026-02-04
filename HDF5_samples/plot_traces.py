@@ -2,7 +2,7 @@
 
 
 ### Set parameters ###############################################################
-fname = r"../sample_data/example_triggered_shot.hdf5"
+fname = r"./sample_data/example_triggered_shot.hdf5"
 T_DURATION = 2 # (s)
 LOCAL_VELOCITY_FILTER_LENGTH = 50 # (m) Length of the local velocity filter. Wavelengths above <LOCAL_VELOCITY_FILTER_LENGTH> will be filtered out.
 ##########################################################################################

@@ -7,7 +7,7 @@ import numpy as np
 from datetime import datetime
 
 ### Set parameters ###############################################################
-fname = r"../sample_data/example_triggered_shot.hdf5"
+fname = r"./sample_data/example_triggered_shot.hdf5"
 T_DURATION = 2 # (s)
 FILTER_LENGTH = 50 # (m) Length of the local velocity filter. Wavelengths above <FILTER_LENGTH> will be filtered out.
 ##########################################################################################

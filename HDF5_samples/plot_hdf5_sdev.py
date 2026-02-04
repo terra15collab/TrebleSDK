@@ -3,7 +3,7 @@
 ### Set parameters ###############################################################
 
 # Define the location of the .hdf5 file
-hdf_file = "../sample_data/example_triggered_shot.hdf5"
+hdf_file = "./sample_data/example_triggered_shot.hdf5"
 # Define the gauge length
 gauge_length = 10  # (meters)
 # Define time over which to calculate standard deviation summary data

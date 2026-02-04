@@ -8,8 +8,8 @@ Virtual datasets use relative path links to the original dataset, so must remain
 #####################################################################################################################
 
 # Define a directory containing multiple Treble .hdf5 files to combine.
-# If no directory exists, run split_data_by_time.py on one of the files in ../sample_data/ to generate a directory of virtual .hdf5 files.
-source_directory = "../sample_data/0.5s_split_files"
+# If no directory exists, run split_data_by_time.py on one of the files in ./sample_data/ to generate a directory of virtual .hdf5 files.
+source_directory = "./sample_data/0.5s_split_files"
 
 ######################################################################################################################
 

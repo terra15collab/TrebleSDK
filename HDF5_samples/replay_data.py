@@ -3,7 +3,7 @@ Example script using PYQTGRAPH to replay data from a Terra15 Treble .hdf5 data f
 """
 
 ### Set playback parameters ###############################################################
-file_path = "../sample_data/example_triggered_shot.hdf5"
+file_path = "./sample_data/example_triggered_shot.hdf5"
 
 t_offset = 0
 t_window = 1

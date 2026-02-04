@@ -8,7 +8,7 @@ Virtual datasets use relative path links to the original dataset, so must remain
 #####################################################################################################################
 
 # Define a directory containing multiple Treble .hdf5 files to re-split.
-source_directory = "../sample_data"
+source_directory = "./sample_data"
 
 # DESIRED OUTPUT FILE DURATION
 split_duration = 0.5 # seconds

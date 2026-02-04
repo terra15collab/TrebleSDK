@@ -9,7 +9,7 @@ import numpy as np
 
 
 ### Set parameters ###############################################################
-original_filename = "../sample_data/example_triggered_shot.hdf5"
+original_filename = "./sample_data/example_triggered_shot.hdf5"
 CROP_DURATION = 1 # (s)
 PLOT_DURATION = 2 # (s)
 ##########################################################################################
