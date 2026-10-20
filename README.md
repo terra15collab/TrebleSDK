@@ -19,8 +19,8 @@ https://docs.astral.sh/uv/#installation
    ```
    uv venv --python=3.10
    source .venv/bin/activate
-   wget --content-disposition https://terra15.com.au/download/latestlinuxapi_cp310_v6.whl
-   uv pip install treble-*-linux_x86_64.whl
+   wget --content-disposition https://terra15.com.au/download/latesttrebleclient_v1.whl
+   uv pip install treble_client-*-py3-none-any.whl
    uv pip install -r requirements.txt
    sudo apt install x11-apps libgl1 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libsm6
    ```
@@ -29,15 +29,12 @@ https://docs.astral.sh/uv/#installation
     ```
     uv venv --python=3.10
     .\.venv\Scripts\activate.ps1
-    Invoke-WebRequest -Uri "https://terra15.com.au/download/latestwindowsapi_cp310_v6.whl" -OutFile "."
-    uv pip install (Get-ChildItem treble-*-win_amd64.whl | Select-Object -First 1).FullName
+    Invoke-WebRequest -Uri "https://terra15.com.au/download/latesttrebleclient_v1.whl" -OutFile "."
+    uv pip install (Get-ChildItem treble_client-*-py3-none-any.whl | Select-Object -First 1).FullName
     uv pip install -r requirements.txt
     ```
 
-    Download links for the Treble API package are also available here:
-    - Linux: https://terra15.com.au/download/latestlinuxapi_cp310_v6.whl
-    - Windows: https://terra15.com.au/download/latestwindowsapi_cp310_v6.whl
-    - MacOS: https://terra15.com.au/download/latestmacosapi_cp310_v6.whl
+    The Treble API is provided by the `treble-client` package, a single wheel for all platforms: https://terra15.com.au/download/latesttrebleclient_v1.whl
 
 3. The SDK provides examples to stream and plot data from a running Treble server. 
    - First edit the script to point to a Treble IP address, eg. `10.0.0.70`.

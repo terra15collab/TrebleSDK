@@ -4,3 +4,6 @@ pytz
 pandas 
 pyside6
 ipykernel
+h5py
+scipy
+tqdm

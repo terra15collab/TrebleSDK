@@ -5,7 +5,7 @@ Example script using PYQTGRAPH and Client Functions to plot full raw waveform Te
 ### Pyside6, Pyside2, or PyQt5 must be installed for correct display.
 ### Pyside6 is preferred.
 
-### The "treble" API package must be installed to run the Treble API.
+### The "treble-client" API package must be installed to run the Treble API.
 ### Check the README.md file for installation instructions.
 
 ### SETUP PARAMETERS ################################################################################
@@ -19,7 +19,7 @@ import numpy as np
 import pyqtgraph as pg
 from scipy.signal import welch
 from pyqtgraph.Qt import QtCore
-from treble.acq_client import acq_Client
+from treble_client.client import Client
 
 def convert_velocity_to_strainrate(data, gauge_length_m, dx):
     gauge_samples = int(round(gauge_length_m / dx))
@@ -38,10 +38,10 @@ def correct_gauge_length_offset(x_vector, gauge_length):
     return x_correct
 
 # setup Treble connection
-client = acq_Client()
+client = Client()
 server_address = f"tcp://{treble_ip}:{server_port}"
 print(f"Connecting to {server_address}...")
-client.connect_to_server(server_address)
+client.connect(server_address)
 _, md = client.fetch_data_product([-1],timeout=20000)
 
 # Create window
@@ -72,10 +72,13 @@ inc = 0
 def update_plot():
     global inc
 
-    full, md = client.fetch_data_product(
-        list(range(-n_frames + 1, 1, 1)),
-        timeout=1000,
-    )
+    try:
+        full, md = client.fetch_data_product(
+            list(range(-n_frames + 1, 1, 1)),
+            timeout=1000,
+        )
+    except TimeoutError:
+        return
 
     if full is None:
         return

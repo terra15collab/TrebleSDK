@@ -5,7 +5,7 @@ Example script using PYQTGRAPH and Client Functions to plot 2D Treble Std Deviat
 ### Pyside6, Pyside2, or PyQt5 must be installed for correct display.
 ### Pyside6 is preferred.
 
-### The "treble" API package must be installed to run the Treble API.
+### The "treble-client" API package must be installed to run the Treble API.
 ### Check the README.md file for installation instructions.
 
 ### SETUP PARAMETERS ################################################################################
@@ -34,13 +34,13 @@ x_stop = 100
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
-from treble.acq_client import acq_Client
+from treble_client.client import Client
 
 # setup Treble connection
-client = acq_Client()
+client = Client()
 server_address = f"tcp://{treble_ip}:{server_port}"
 print(f"Connecting to {server_address}...")
-client.connect_to_server(server_address)
+client.connect(server_address)
 _, md = client.fetch_data_product([-1], timeout=20000)
 
 # Create window
@@ -71,12 +71,15 @@ inc = 0
 def update_plot():
     global inc
 
-    rms, md = client.fetch_data_product(
-        list(range(-n_frames + 1, 1, 1)),
-        timeout=20000,
-        with_client_fn="calc_rms",
-        client_fn_args={"start_index2":x_start, "end_index2":x_stop}
-    )
+    try:
+        rms, md = client.fetch_data_product(
+            list(range(-n_frames + 1, 1, 1)),
+            timeout=20000,
+            with_client_fn="calc_rms",
+            client_fn_args={"start_index2":x_start, "end_index2":x_stop}
+        )
+    except TimeoutError:
+        return
 
     if rms is None:
         return

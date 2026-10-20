@@ -5,7 +5,7 @@ Example script using PyQTGRAPH and Terra15 Treble client functions to plot the r
 ### Pyside6, Pyside2, or PyQt5 must be installed for correct display.
 ### Pyside6 is preferred.
 
-### The "treble" API package must be installed to run the Treble API.
+### The "treble-client" API package must be installed to run the Treble API.
 ### Check the README.md file for installation instructions.
 
 ### SETUP PARAMETERS ################################################################################
@@ -23,13 +23,13 @@ gauge_length = 5 # (m)
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
-from treble.acq_client import acq_Client
+from treble_client.client import Client
 
 # setup Treble connection, initial acquisition to get metadata
-client = acq_Client()
+client = Client()
 server_address = f"tcp://{treble_ip}:{server_port}"
 print(f"Connecting to {server_address}...")
-client.connect_to_server(server_address)
+client.connect(server_address)
 _, md = client.fetch_data_product([-1],timeout=20000)
 
 # Calculates x axis to display correct region.
@@ -47,17 +47,20 @@ curve = plot1.plot(pen='y')
 inc = 0
 def update_plot():
     global inc, md
-    data, md = client.fetch_data_product(
-        list(range(-n_frames + 1, 1, 1)),
-        timeout=20000,
-        with_client_fn='convert_velocity_do_range_mean',
-        client_fn_args={
-            "start_index2": x_start,
-            "end_index2": x_stop,
-            "gauge_length": gauge_length,
-            "dx_dec": md["dx"]
-        }
-    )
+    try:
+        data, md = client.fetch_data_product(
+            list(range(-n_frames + 1, 1, 1)),
+            timeout=20000,
+            with_client_fn='convert_velocity_do_range_mean',
+            client_fn_args={
+                "start_index2": x_start,
+                "end_index2": x_stop,
+                "gauge_length": gauge_length,
+                "dx_dec": md["dx"]
+            }
+        )
+    except TimeoutError:
+        return
     data = data.reshape((data.shape[0] * data.shape[1], -1)).squeeze()
 
     curve.setData(data)
