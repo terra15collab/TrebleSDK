@@ -5,7 +5,7 @@ Example script using PYQTGRAPH and Client Functions to plot full raw waveform Te
 ### Pyside6, Pyside2, or PyQt5 must be installed for correct display.
 ### Pyside6 is preferred.
 
-### The "treble" API package must be installed to run the Treble API.
+### The "treble-client" API package must be installed to run the Treble API.
 ### Check the README.md file for installation instructions.
 
 ### SETUP PARAMETERS ################################################################################
@@ -21,13 +21,13 @@ x_stop = 100
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
-from treble.acq_client import acq_Client
+from treble_client.client import Client
 
 # setup Treble connection
-client = acq_Client()
+client = Client()
 server_address = f"tcp://{treble_ip}:{server_port}"
 print(f"Connecting to {server_address}...")
-client.connect_to_server(server_address)
+client.connect(server_address)
 _, md = client.fetch_data_product([-1],timeout=20000)
 
 # Create window
@@ -57,10 +57,13 @@ inc = 0
 def update_plot():
     global inc
 
-    full, md = client.fetch_data_product(
-        list(range(-n_frames + 1, 1, 1)),
-        timeout=20000,
-    )
+    try:
+        full, md = client.fetch_data_product(
+            list(range(-n_frames + 1, 1, 1)),
+            timeout=20000,
+        )
+    except TimeoutError:
+        return
     full = full.reshape((full.shape[0] * full.shape[1], -1)).squeeze()
 
     if full is None:
